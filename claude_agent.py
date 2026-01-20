@@ -57,7 +57,30 @@ async def main():
                 cwd="/home/user/app"
             )
             
-            # Neuen Code committen (includes .claude_session/)
+            # Find and save current session_id from ~/.claude/ directory
+            # Sessions are stored in ~/.claude/projects/<project-hash>/sessions/<session-id>/
+            find_session_cmd = """
+            find ~/.claude -name "*.json" -path "*/sessions/*" -type f 2>/dev/null | 
+            xargs ls -t 2>/dev/null | 
+            head -1 | 
+            xargs dirname 2>/dev/null | 
+            xargs basename 2>/dev/null
+            """
+            session_result = subprocess.run(
+                find_session_cmd,
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            if session_result.stdout.strip():
+                session_id = session_result.stdout.strip()
+                with open("/home/user/app/.claude_session_id", "w") as f:
+                    f.write(session_id)
+                print(f"[DEPLOY] ✅ Session ID gefunden und gespeichert: {session_id}")
+            else:
+                print("[DEPLOY] ⚠️ Keine Session ID in ~/.claude/ gefunden")
+            
+            # Neuen Code committen (includes .claude_session/ and .claude_session_id)
             run_git_cmd("git add -A")
             run_git_cmd("git commit -m 'Lilo Auto-Deploy' --allow-empty")
             run_git_cmd("git push origin main")
@@ -236,19 +259,12 @@ Starte JETZT mit Schritt 1!"""
             # B. Wenn er fertig ist (oder Fehler)
             elif isinstance(message, ResultMessage):
                 status = "success" if not message.is_error else "error"
-                
-                # Save session_id to file for future resume
-                if message.session_id:
-                    with open("/home/user/app/.claude_session_id", "w") as f:
-                        f.write(message.session_id)
-                    print(f"[LILO] Session ID gespeichert: {message.session_id}")
-                
-                # Output session_id for session persistence
+                print(f"[LILO] Session ID: {message.session_id}")
                 print(json.dumps({
                     "type": "result", 
                     "status": status, 
                     "cost": message.total_cost_usd,
-                    "session_id": message.session_id  # For resuming later
+                    "session_id": message.session_id
                 }), flush=True)
 
 if __name__ == "__main__":

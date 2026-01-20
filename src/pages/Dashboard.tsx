@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { AlertCircle, Plus, TrendingUp, TrendingDown, Receipt } from 'lucide-react';
+import { AlertCircle, Plus, TrendingUp, TrendingDown, Receipt, Moon, Sun } from 'lucide-react';
 
 // Category colors (terracotta-to-amber spectrum)
 const CATEGORY_COLORS = [
@@ -34,6 +34,11 @@ export default function Dashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Ausgaben | null>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    // Initialize from localStorage or default to false
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -43,6 +48,16 @@ export default function Dashboard() {
     kategorie: '',
     notizen: '',
   });
+
+  // Apply dark mode to document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
 
   // Fetch data
   useEffect(() => {
@@ -356,6 +371,14 @@ export default function Dashboard() {
       <header className="px-4 py-6 md:px-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <h1 className="text-lg font-medium text-muted-foreground">Ausgaben</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setDarkMode(!darkMode)}
+            aria-label="Toggle Dark Mode"
+          >
+            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
         </div>
       </header>
 

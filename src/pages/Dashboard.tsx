@@ -275,7 +275,10 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header - Desktop */}
         <header className="hidden md:flex items-center justify-between px-6 py-4 border-b border-border">
-          <h1 className="text-xl font-semibold">Ausgabentracker</h1>
+          <div className="flex-1">
+            <h1 className="text-xl font-semibold">Ausgabentracker</h1>
+            <p className="text-sm text-muted-foreground mt-1">Letzte Anfrage: "was hab ich dich gerade gefragt?"</p>
+          </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -355,8 +358,9 @@ export default function Dashboard() {
         </header>
 
         {/* Header - Mobile */}
-        <header className="md:hidden flex items-center justify-between px-4 py-4 border-b border-border">
+        <header className="md:hidden px-4 py-4 border-b border-border">
           <h1 className="text-lg font-semibold">Ausgabentracker</h1>
+          <p className="text-xs text-muted-foreground mt-1">Letzte Anfrage: "was hab ich dich gerade gefragt?"</p>
         </header>
 
         {/* Desktop Layout */}

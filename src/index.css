@@ -42,42 +42,38 @@
 }
 
 :root {
+  --background: hsl(40 25% 97%);
+  --foreground: hsl(25 15% 20%);
+  --card: hsl(40 30% 99%);
+  --card-foreground: hsl(25 15% 20%);
+  --popover: hsl(40 30% 99%);
+  --popover-foreground: hsl(25 15% 20%);
+  --primary: hsl(15 70% 55%);
+  --primary-foreground: hsl(40 30% 99%);
+  --secondary: hsl(40 20% 94%);
+  --secondary-foreground: hsl(25 15% 20%);
+  --muted: hsl(40 20% 94%);
+  --muted-foreground: hsl(25 10% 50%);
+  --accent: hsl(35 80% 60%);
+  --accent-foreground: hsl(25 15% 20%);
+  --destructive: hsl(0 70% 55%);
+  --border: hsl(40 20% 88%);
+  --input: hsl(40 20% 88%);
+  --ring: hsl(15 70% 55%);
   --radius: 0.75rem;
-  --background: hsl(40 25% 98%);
-  --foreground: hsl(0 0% 10%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(0 0% 10%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(0 0% 10%);
-  --primary: hsl(185 55% 35%);
-  --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(40 15% 90%);
-  --secondary-foreground: hsl(0 0% 10%);
-  --muted: hsl(40 15% 94%);
-  --muted-foreground: hsl(0 0% 45%);
-  --accent: hsl(185 60% 92%);
-  --accent-foreground: hsl(0 0% 10%);
-  --destructive: hsl(0 70% 50%);
-  --border: hsl(40 10% 88%);
-  --input: hsl(40 10% 88%);
-  --ring: hsl(185 55% 35%);
-  --chart-1: hsl(185 55% 35%);
-  --chart-2: hsl(142 60% 45%);
-  --chart-3: hsl(185 40% 60%);
-  --chart-4: hsl(40 60% 55%);
-  --chart-5: hsl(0 70% 50%);
-  --hero-gradient: linear-gradient(to bottom, hsl(40 25% 98%), hsl(185 30% 96%));
-  --success-color: hsl(142 60% 45%);
-  --chart-primary: hsl(185 55% 35%);
-  --chart-secondary: hsl(185 40% 60%);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --chart-1: hsl(15 70% 55%);
+  --chart-2: hsl(145 60% 45%);
+  --chart-3: hsl(35 80% 60%);
+  --chart-4: hsl(25 60% 65%);
+  --chart-5: hsl(45 70% 60%);
+  --sidebar: hsl(40 30% 99%);
+  --sidebar-foreground: hsl(25 15% 20%);
+  --sidebar-primary: hsl(15 70% 55%);
+  --sidebar-primary-foreground: hsl(40 30% 99%);
+  --sidebar-accent: hsl(40 20% 94%);
+  --sidebar-accent-foreground: hsl(25 15% 20%);
+  --sidebar-border: hsl(40 20% 88%);
+  --sidebar-ring: hsl(15 70% 55%);
 }
 
 .dark {
@@ -120,6 +116,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'IBM Plex Sans', sans-serif;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05' /%3E%3C/svg%3E");
+    background-repeat: repeat;
   }
 }

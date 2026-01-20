@@ -1,0 +1,27 @@
+[
+  {
+    "content": "Analyze app_metadata.json to understand data structure",
+    "status": "completed",
+    "activeForm": "Analyzing app_metadata.json"
+  },
+  {
+    "content": "Create design brief using frontend-design skill",
+    "status": "completed",
+    "activeForm": "Creating design brief"
+  },
+  {
+    "content": "Implement Dashboard.tsx using frontend-impl skill",
+    "status": "completed",
+    "activeForm": "Implementing Dashboard.tsx"
+  },
+  {
+    "content": "Build the project",
+    "status": "completed",
+    "activeForm": "Building the project"
+  },
+  {
+    "content": "Deploy to GitHub",
+    "status": "in_progress",
+    "activeForm": "Deploying to GitHub"
+  }
+]

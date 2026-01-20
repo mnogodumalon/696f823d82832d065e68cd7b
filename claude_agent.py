@@ -59,12 +59,9 @@ async def main():
             
             # Find and save current session_id from ~/.claude/ directory
             # Sessions are stored in ~/.claude/projects/<project-hash>/sessions/<session-id>/
+            # Session IDs are UUIDs like: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
             find_session_cmd = """
-            find ~/.claude -name "*.json" -path "*/sessions/*" -type f 2>/dev/null | 
-            xargs ls -t 2>/dev/null | 
-            head -1 | 
-            xargs dirname 2>/dev/null | 
-            xargs basename 2>/dev/null
+            find ~/.claude -type d -regex '.*/[0-9a-f-]\\{36\\}$' 2>/dev/null | head -1 | xargs basename 2>/dev/null
             """
             session_result = subprocess.run(
                 find_session_cmd,
@@ -72,13 +69,14 @@ async def main():
                 capture_output=True,
                 text=True
             )
-            if session_result.stdout.strip():
-                session_id = session_result.stdout.strip()
+            session_id = session_result.stdout.strip()
+            # Validate it looks like a UUID
+            if session_id and len(session_id) == 36 and session_id.count('-') == 4:
                 with open("/home/user/app/.claude_session_id", "w") as f:
                     f.write(session_id)
                 print(f"[DEPLOY] ✅ Session ID gefunden und gespeichert: {session_id}")
             else:
-                print("[DEPLOY] ⚠️ Keine Session ID in ~/.claude/ gefunden")
+                print(f"[DEPLOY] ⚠️ Keine gültige Session ID gefunden (got: '{session_id}')")
             
             # Neuen Code committen (includes .claude_session/ and .claude_session_id)
             run_git_cmd("git add -A")

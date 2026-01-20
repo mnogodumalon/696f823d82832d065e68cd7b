@@ -382,6 +382,14 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Begrüßung */}
+      <div className="px-4 md:px-8 mb-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold">Hallo Martin! 👋</h2>
+          <p className="text-muted-foreground mt-1">Hier ist deine Ausgaben-Übersicht</p>
+        </div>
+      </div>
+
       {/* Mobile Layout */}
       <div className="md:hidden px-4 pb-24 space-y-8">
         {/* Hero Section */}

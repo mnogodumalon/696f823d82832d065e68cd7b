@@ -61,7 +61,7 @@ async def main():
             # Sessions are stored in ~/.claude/projects/<project-hash>/sessions/<session-id>/
             # Session IDs are UUIDs like: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
             find_session_cmd = """
-            find ~/.claude -type d -regex '.*/[0-9a-f-]\\{36\\}$' 2>/dev/null | head -1 | xargs basename 2>/dev/null
+            find ~/.claude -type d 2>/dev/null | grep -E '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' | head -1 | xargs -r basename
             """
             session_result = subprocess.run(
                 find_session_cmd,
@@ -258,6 +258,16 @@ Starte JETZT mit Schritt 1!"""
             elif isinstance(message, ResultMessage):
                 status = "success" if not message.is_error else "error"
                 print(f"[LILO] Session ID: {message.session_id}")
+                
+                # Save session_id to file for future resume (AFTER ResultMessage)
+                if message.session_id:
+                    try:
+                        with open("/home/user/app/.claude_session_id", "w") as f:
+                            f.write(message.session_id)
+                        print(f"[LILO] ✅ Session ID in Datei gespeichert")
+                    except Exception as e:
+                        print(f"[LILO] ⚠️ Fehler beim Speichern der Session ID: {e}")
+                
                 print(json.dumps({
                     "type": "result", 
                     "status": status, 

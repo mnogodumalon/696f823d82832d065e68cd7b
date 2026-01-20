@@ -385,7 +385,7 @@ export default function Dashboard() {
       {/* Begrüßung */}
       <div className="px-4 md:px-8 mb-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold">Hallo Martin! 👋</h2>
+          <h2 className="text-2xl md:text-3xl font-bold">Hallo Maxi! 👋</h2>
           <p className="text-muted-foreground mt-1">Hier ist deine Ausgaben-Übersicht</p>
         </div>
       </div>

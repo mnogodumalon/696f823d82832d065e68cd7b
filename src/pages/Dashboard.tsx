@@ -16,14 +16,14 @@ import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDaysI
 import { de } from 'date-fns/locale';
 import { AlertCircle, Plus, TrendingUp, TrendingDown, Receipt, Moon, Sun } from 'lucide-react';
 
-// Category colors (terracotta-to-amber spectrum)
+// Category colors (blue spectrum)
 const CATEGORY_COLORS = [
-  'hsl(15 70% 55%)',   // Terracotta
-  'hsl(20 75% 58%)',
-  'hsl(25 80% 60%)',
-  'hsl(30 82% 62%)',
-  'hsl(35 80% 60%)',   // Amber
-  'hsl(40 75% 58%)',
+  'hsl(210 80% 55%)',  // Blue
+  'hsl(215 75% 58%)',
+  'hsl(220 80% 60%)',
+  'hsl(225 82% 62%)',
+  'hsl(230 80% 60%)',
+  'hsl(235 75% 58%)',
 ];
 
 export default function Dashboard() {
@@ -399,7 +399,7 @@ export default function Dashboard() {
                 ) : (
                   <TrendingDown className="h-3 w-3 text-chart-2" />
                 )}
-                <span style={{ color: monthComparison.isUp ? 'hsl(35 80% 60%)' : 'hsl(145 60% 45%)' }}>
+                <span style={{ color: monthComparison.isUp ? 'hsl(220 80% 60%)' : 'hsl(145 60% 45%)' }}>
                   {monthComparison.isUp ? '↑' : '↓'} {monthComparison.percentage.toFixed(0)}% vs. letzten Monat
                 </span>
               </div>
@@ -487,7 +487,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{currentMonthExpenses.length} Ausgaben</span>
                       {monthComparison && (
-                        <span className="flex items-center gap-1" style={{ color: monthComparison.isUp ? 'hsl(35 80% 60%)' : 'hsl(145 60% 45%)' }}>
+                        <span className="flex items-center gap-1" style={{ color: monthComparison.isUp ? 'hsl(220 80% 60%)' : 'hsl(145 60% 45%)' }}>
                           {monthComparison.isUp ? '↑' : '↓'} {monthComparison.percentage.toFixed(0)}% vs. letzten Monat
                         </span>
                       )}
@@ -507,8 +507,8 @@ export default function Dashboard() {
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(15 70% 55%)" stopOpacity={0.15}/>
-                            <stop offset="95%" stopColor="hsl(15 70% 55%)" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="hsl(210 80% 55%)" stopOpacity={0.15}/>
+                            <stop offset="95%" stopColor="hsl(210 80% 55%)" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
                         <XAxis
@@ -532,7 +532,7 @@ export default function Dashboard() {
                         <Area
                           type="monotone"
                           dataKey="value"
-                          stroke="hsl(15 70% 55%)"
+                          stroke="hsl(210 80% 55%)"
                           strokeWidth={2}
                           fill="url(#colorValue)"
                         />
@@ -692,7 +692,7 @@ export default function Dashboard() {
         <DialogTrigger asChild>
           <Button
             className="md:hidden fixed bottom-0 left-0 right-0 h-14 rounded-none shadow-lg"
-            style={{ boxShadow: '0 -4px 12px rgba(217,104,70,0.20)' }}
+            style={{ boxShadow: '0 -4px 12px rgba(66,133,244,0.20)' }}
           >
             <Plus className="h-5 w-5 mr-2" />
             Ausgabe hinzufügen

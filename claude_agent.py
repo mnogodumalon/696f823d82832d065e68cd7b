@@ -49,7 +49,15 @@ async def main():
                 run_git_cmd("git checkout -b main")
                 run_git_cmd(f"git remote add origin {git_push_url}")
             
-            # Neuen Code committen
+            # Save session to repo for future resume (before git add)
+            print("[DEPLOY] 💾 Sichere Session für spätere Nutzung...")
+            subprocess.run(
+                "rm -rf /home/user/app/.claude_session && cp -r ~/.claude /home/user/app/.claude_session 2>/dev/null || true",
+                shell=True,
+                cwd="/home/user/app"
+            )
+            
+            # Neuen Code committen (includes .claude_session/)
             run_git_cmd("git add -A")
             run_git_cmd("git commit -m 'Lilo Auto-Deploy' --allow-empty")
             run_git_cmd("git push origin main")

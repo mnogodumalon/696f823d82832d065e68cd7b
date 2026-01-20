@@ -1,419 +1,732 @@
-import { useEffect, useState, useMemo } from 'react'
-import type { Ausgaben, Kategorien } from '@/types/app'
-import { LivingAppsService, extractRecordId } from '@/services/livingAppsService'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts'
-import { format, startOfMonth, parseISO } from 'date-fns'
-import { de } from 'date-fns/locale'
-import { TrendingUp, Euro, Calculator, FileText } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react';
+import type { Ausgaben, Kategorien } from '@/types/app';
+import { APP_IDS } from '@/types/app';
+import { LivingAppsService, extractRecordId, createRecordUrl } from '@/services/livingAppsService';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, parseISO, startOfMonth, endOfMonth, differenceInCalendarDays } from 'date-fns';
+import { de } from 'date-fns/locale';
+import { AlertCircle, Plus, TrendingUp, TrendingDown } from 'lucide-react';
+import { toast } from 'sonner';
 
-// Chart colors matching design brief
-const CHART_COLORS = [
-  'hsl(220, 70%, 50%)',
-  'hsl(142, 71%, 45%)',
-  'hsl(45, 93%, 47%)',
-  'hsl(280, 65%, 60%)',
-  'hsl(340, 75%, 55%)',
-  'hsl(160, 60%, 45%)',
-]
+interface CategorySpending {
+  categoryName: string;
+  amount: number;
+  percentage: number;
+}
 
 export default function Dashboard() {
-  const [ausgaben, setAusgaben] = useState<Ausgaben[]>([])
-  const [kategorien, setKategorien] = useState<Kategorien[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [ausgaben, setAusgaben] = useState<Ausgaben[]>([]);
+  const [kategorien, setKategorien] = useState<Kategorien[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Load data on mount
+  // Form state
+  const [formData, setFormData] = useState({
+    beschreibung: '',
+    betrag: '',
+    datum: format(new Date(), 'yyyy-MM-dd'),
+    kategorie: '',
+    notizen: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  // Load data
   useEffect(() => {
     async function loadData() {
       try {
-        setLoading(true)
-        setError(null)
-        const [kategorienData, ausgabenData] = await Promise.all([
-          LivingAppsService.getKategorien(),
+        setLoading(true);
+        const [ausgabenData, kategorienData] = await Promise.all([
           LivingAppsService.getAusgaben(),
-        ])
-        setKategorien(kategorienData)
-        setAusgaben(ausgabenData)
+          LivingAppsService.getKategorien(),
+        ]);
+        setAusgaben(ausgabenData);
+        setKategorien(kategorienData);
+        setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten')
+        setError(err instanceof Error ? err : new Error('Fehler beim Laden der Daten'));
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
-  // Build category lookup map (record_id -> kategoriename)
-  const categoryMap = useMemo(() => {
-    const map = new Map<string, string>()
-    kategorien.forEach((kat) => {
-      map.set(kat.record_id, kat.fields.kategoriename || 'Unbekannt')
-    })
-    return map
-  }, [kategorien])
+  // Create kategorie lookup map
+  const kategorieMap = useMemo(() => {
+    const map = new Map<string, Kategorien>();
+    kategorien.forEach(kat => map.set(kat.record_id, kat));
+    return map;
+  }, [kategorien]);
 
-  // Calculate KPIs
-  const kpis = useMemo(() => {
-    const total = ausgaben.reduce((sum, a) => sum + (a.fields.betrag || 0), 0)
-    const count = ausgaben.length
+  // Calculate current month data
+  const currentMonthData = useMemo(() => {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
 
-    // Current month filter
-    const currentMonth = format(new Date(), 'yyyy-MM')
-    const thisMonthExpenses = ausgaben.filter((a) => a.fields.datum?.startsWith(currentMonth))
-    const thisMonthTotal = thisMonthExpenses.reduce((sum, a) => sum + (a.fields.betrag || 0), 0)
+    const currentMonthAusgaben = ausgaben.filter(a => {
+      if (!a.fields.datum) return false;
+      const datum = parseISO(a.fields.datum);
+      return datum >= monthStart && datum <= monthEnd;
+    });
 
-    // Average
-    const average = count > 0 ? total / count : 0
+    const total = currentMonthAusgaben.reduce((sum, a) => sum + (a.fields.betrag || 0), 0);
 
-    return { total, thisMonthTotal, average, count }
-  }, [ausgaben])
+    return { ausgaben: currentMonthAusgaben, total };
+  }, [ausgaben]);
 
-  // Prepare monthly trend data (last 6 months)
-  const monthlyData = useMemo(() => {
-    if (ausgaben.length === 0) return []
+  // Calculate previous month total for comparison
+  const previousMonthTotal = useMemo(() => {
+    const now = new Date();
+    const prevMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const prevMonthEnd = endOfMonth(prevMonthStart);
 
-    // Group by month
-    const monthMap = new Map<string, number>()
-    ausgaben.forEach((a) => {
-      if (a.fields.datum) {
-        const month = a.fields.datum.substring(0, 7) // YYYY-MM
-        monthMap.set(month, (monthMap.get(month) || 0) + (a.fields.betrag || 0))
+    const prevMonthAusgaben = ausgaben.filter(a => {
+      if (!a.fields.datum) return false;
+      const datum = parseISO(a.fields.datum);
+      return datum >= prevMonthStart && datum <= prevMonthEnd;
+    });
+
+    return prevMonthAusgaben.reduce((sum, a) => sum + (a.fields.betrag || 0), 0);
+  }, [ausgaben]);
+
+  // Calculate quick stats
+  const quickStats = useMemo(() => {
+    const now = new Date();
+    const daysInMonth = differenceInCalendarDays(endOfMonth(now), startOfMonth(now)) + 1;
+    const currentDay = now.getDate();
+
+    const avgPerDay = currentDay > 0 ? currentMonthData.total / currentDay : 0;
+    const count = currentMonthData.ausgaben.length;
+
+    // Find most expensive category
+    const categoryTotals = new Map<string, number>();
+    currentMonthData.ausgaben.forEach(a => {
+      const katId = extractRecordId(a.fields.kategorie);
+      if (katId) {
+        const current = categoryTotals.get(katId) || 0;
+        categoryTotals.set(katId, current + (a.fields.betrag || 0));
       }
-    })
+    });
 
-    // Sort and take last 6 months
-    const sortedMonths = Array.from(monthMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6)
+    let topCategoryId = '';
+    let topCategoryAmount = 0;
+    categoryTotals.forEach((amount, katId) => {
+      if (amount > topCategoryAmount) {
+        topCategoryAmount = amount;
+        topCategoryId = katId;
+      }
+    });
 
-    return sortedMonths.map(([month, total]) => ({
-      month: format(parseISO(`${month}-01`), 'MMM', { locale: de }),
-      total: Math.round(total * 100) / 100,
-    }))
-  }, [ausgaben])
+    const topCategory = topCategoryId ? kategorieMap.get(topCategoryId)?.fields.kategoriename : null;
 
-  // Prepare category breakdown data
-  const categoryData = useMemo(() => {
-    const categoryTotals = new Map<string, number>()
+    return {
+      avgPerDay,
+      count,
+      topCategory: topCategory || 'Keine',
+    };
+  }, [currentMonthData, kategorieMap]);
 
-    ausgaben.forEach((a) => {
-      const categoryUrl = a.fields.kategorie
-      const categoryId = extractRecordId(categoryUrl)
-      const categoryName = categoryId ? categoryMap.get(categoryId) || 'Unkategorisiert' : 'Unkategorisiert'
+  // Calculate category breakdown
+  const categoryBreakdown = useMemo((): CategorySpending[] => {
+    const categoryTotals = new Map<string, number>();
 
-      categoryTotals.set(categoryName, (categoryTotals.get(categoryName) || 0) + (a.fields.betrag || 0))
-    })
+    currentMonthData.ausgaben.forEach(a => {
+      const katId = extractRecordId(a.fields.kategorie);
+      if (katId) {
+        const current = categoryTotals.get(katId) || 0;
+        categoryTotals.set(katId, current + (a.fields.betrag || 0));
+      }
+    });
 
-    return Array.from(categoryTotals.entries())
-      .map(([name, total]) => ({ name, total: Math.round(total * 100) / 100 }))
-      .sort((a, b) => b.total - a.total)
-  }, [ausgaben, categoryMap])
+    const breakdown: CategorySpending[] = [];
+    categoryTotals.forEach((amount, katId) => {
+      const kat = kategorieMap.get(katId);
+      if (kat) {
+        breakdown.push({
+          categoryName: kat.fields.kategoriename || 'Unbekannt',
+          amount,
+          percentage: currentMonthData.total > 0 ? (amount / currentMonthData.total) * 100 : 0,
+        });
+      }
+    });
 
-  // Prepare pie chart data
-  const pieData = useMemo(() => {
-    return categoryData.map((item) => ({
-      name: item.name,
-      value: item.total,
-    }))
-  }, [categoryData])
+    return breakdown.sort((a, b) => b.amount - a.amount);
+  }, [currentMonthData, kategorieMap]);
 
-  // Recent expenses (last 10)
+  // Recent expenses
   const recentExpenses = useMemo(() => {
     return [...ausgaben]
       .sort((a, b) => {
-        const dateA = a.fields.datum || ''
-        const dateB = b.fields.datum || ''
-        return dateB.localeCompare(dateA)
+        const dateA = a.fields.datum || a.createdat;
+        const dateB = b.fields.datum || b.createdat;
+        return dateB.localeCompare(dateA);
       })
-      .slice(0, 10)
-  }, [ausgaben])
+      .slice(0, 10);
+  }, [ausgaben]);
 
-  // Currency formatter
-  const formatCurrency = (value: number) => {
+  // Handle form submission
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const apiData: Ausgaben['fields'] = {
+        beschreibung: formData.beschreibung,
+        betrag: parseFloat(formData.betrag),
+        datum: formData.datum,
+        kategorie: formData.kategorie ? createRecordUrl(APP_IDS.KATEGORIEN, formData.kategorie) : undefined,
+        notizen: formData.notizen || undefined,
+      };
+
+      await LivingAppsService.createAusgabenEntry(apiData);
+
+      // Reload data
+      const newAusgaben = await LivingAppsService.getAusgaben();
+      setAusgaben(newAusgaben);
+
+      // Reset form and close dialog
+      setFormData({
+        beschreibung: '',
+        betrag: '',
+        datum: format(new Date(), 'yyyy-MM-dd'),
+        kategorie: '',
+        notizen: '',
+      });
+      setDialogOpen(false);
+
+      toast.success('Ausgabe hinzugefügt', {
+        description: `${formData.beschreibung} - ${parseFloat(formData.betrag).toFixed(2)} €`,
+      });
+    } catch (err) {
+      toast.error('Fehler beim Speichern', {
+        description: err instanceof Error ? err.message : 'Unbekannter Fehler',
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Format currency
+  function formatCurrency(value: number): string {
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
       currency: 'EUR',
-    }).format(value)
-  }
-
-  // Custom tooltip for charts
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border bg-background p-2 shadow-md">
-          <p className="text-sm font-semibold">{payload[0].payload.name || payload[0].payload.month}</p>
-          <p className="text-sm text-muted-foreground">
-            {formatCurrency(payload[0].value)}
-          </p>
-        </div>
-      )
-    }
-    return null
+    }).format(value);
   }
 
   // Loading state
   if (loading) {
     return (
-      <div className="container mx-auto p-4 md:p-6">
-        <Skeleton className="h-10 w-64 mb-8" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-[400px]" />
-          ))}
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+          <div className="h-16 flex items-center justify-between border-b border-border pb-4">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+          <Skeleton className="h-80 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="container mx-auto p-4 md:p-6">
-        <Alert variant="destructive">
-          <AlertDescription className="flex items-center justify-between">
-            <span>Fehler beim Laden der Daten: {error}</span>
-            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Fehler</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>{error.message}</p>
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="mt-2"
+            >
               Erneut versuchen
             </Button>
           </AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
 
-  // Empty state
-  if (ausgaben.length === 0) {
-    return (
-      <div className="container mx-auto p-4 md:p-6">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Ausgabentracker Dashboard</h1>
-        <p className="text-muted-foreground mb-8">Übersicht Ihrer Ausgaben</p>
-        <Alert>
-          <AlertDescription>
-            Noch keine Ausgaben erfasst. Erstellen Sie Ihre erste Ausgabe, um das Dashboard zu sehen.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
+  const monthDiff = currentMonthData.total - previousMonthTotal;
+  const isIncrease = monthDiff > 0;
 
   return (
-    <div className="container mx-auto p-4 md:p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">Ausgabentracker Dashboard</h1>
-        <p className="text-muted-foreground">
-          Übersicht Ihrer Ausgaben • Stand: {format(new Date(), 'dd.MM.yyyy', { locale: de })}
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto">
+        {/* Header - Desktop */}
+        <header className="hidden md:flex items-center justify-between px-6 py-4 border-b border-border">
+          <h1 className="text-xl font-semibold">Ausgabentracker</h1>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Ausgabe hinzufügen
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Neue Ausgabe</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="beschreibung">Beschreibung *</Label>
+                  <Input
+                    id="beschreibung"
+                    value={formData.beschreibung}
+                    onChange={(e) => setFormData({ ...formData, beschreibung: e.target.value })}
+                    required
+                    placeholder="z.B. Einkauf, Kino, Tanken"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="betrag">Betrag (EUR) *</Label>
+                  <Input
+                    id="betrag"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.betrag}
+                    onChange={(e) => setFormData({ ...formData, betrag: e.target.value })}
+                    required
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="datum">Datum *</Label>
+                  <Input
+                    id="datum"
+                    type="date"
+                    value={formData.datum}
+                    onChange={(e) => setFormData({ ...formData, datum: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="kategorie">Kategorie</Label>
+                  <Select value={formData.kategorie} onValueChange={(v) => setFormData({ ...formData, kategorie: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kategorie wählen..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kategorien.map((kat) => (
+                        <SelectItem key={kat.record_id} value={kat.record_id}>
+                          {kat.fields.kategoriename}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notizen">Notizen</Label>
+                  <Textarea
+                    id="notizen"
+                    value={formData.notizen}
+                    onChange={(e) => setFormData({ ...formData, notizen: e.target.value })}
+                    placeholder="Zusätzliche Informationen..."
+                    rows={3}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? 'Wird gespeichert...' : 'Ausgabe speichern'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </header>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              Gesamt
-            </CardTitle>
-            <Euro className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl md:text-4xl font-bold tabular-nums">{formatCurrency(kpis.total)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Alle Ausgaben</p>
-          </CardContent>
-        </Card>
+        {/* Header - Mobile */}
+        <header className="md:hidden flex items-center justify-between px-4 py-4 border-b border-border">
+          <h1 className="text-lg font-semibold">Ausgabentracker</h1>
+        </header>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              Dieser Monat
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl md:text-4xl font-bold tabular-nums">{formatCurrency(kpis.thisMonthTotal)}</div>
-            <p className="text-xs text-muted-foreground mt-1">{format(new Date(), 'MMMM yyyy', { locale: de })}</p>
-          </CardContent>
-        </Card>
+        {/* Desktop Layout */}
+        <div className="hidden md:block px-6 py-6">
+          <div className="grid grid-cols-[60%_40%] gap-8">
+            {/* Left Column */}
+            <div className="space-y-8">
+              {/* Hero Card */}
+              <Card
+                className="border-none shadow-md"
+                style={{ background: 'var(--hero-gradient)' }}
+              >
+                <CardContent className="p-12">
+                  <div className="space-y-3">
+                    <p className="text-base font-medium text-muted-foreground">
+                      Ausgaben diesen Monat
+                    </p>
+                    <p
+                      className="text-7xl font-light text-primary tracking-tight"
+                      style={{ fontWeight: 300, letterSpacing: '-0.02em' }}
+                    >
+                      {formatCurrency(currentMonthData.total)}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {isIncrease ? (
+                        <TrendingUp className="h-4 w-4 text-destructive" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-[hsl(var(--success-color))]" />
+                      )}
+                      <span>
+                        {formatCurrency(Math.abs(monthDiff))} {isIncrease ? 'mehr' : 'weniger'} als letzter Monat
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              Durchschnitt
-            </CardTitle>
-            <Calculator className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl md:text-4xl font-bold tabular-nums">{formatCurrency(kpis.average)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Pro Ausgabe</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              Anzahl
-            </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl md:text-4xl font-bold tabular-nums">{kpis.count}</div>
-            <p className="text-xs text-muted-foreground mt-1">Ausgaben erfasst</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        {/* Monthly Trend Line Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">Monatlicher Verlauf</CardTitle>
-            <p className="text-sm text-muted-foreground">Ausgaben der letzten 6 Monate</p>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="month"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  tickFormatter={(value) => `€${value}`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="hsl(220, 70%, 50%)"
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(220, 70%, 50%)', strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Category Breakdown Bar Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">Ausgaben nach Kategorie</CardTitle>
-            <p className="text-sm text-muted-foreground">Vergleich der Ausgabenkategorien</p>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={categoryData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `€${value}`} />
-                <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} width={100} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="total" fill="hsl(220, 70%, 50%)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Category Split Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">Kategorienverteilung</CardTitle>
-            <p className="text-sm text-muted-foreground">Prozentuale Aufteilung der Ausgaben</p>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Recent Expenses Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">Letzte Ausgaben</CardTitle>
-            <p className="text-sm text-muted-foreground">Die 10 neuesten Einträge</p>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-auto max-h-[300px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">Datum</TableHead>
-                    <TableHead className="hidden md:table-cell">Beschreibung</TableHead>
-                    <TableHead>Kategorie</TableHead>
-                    <TableHead className="text-right">Betrag</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentExpenses.map((expense) => {
-                    const categoryId = extractRecordId(expense.fields.kategorie)
-                    const categoryName = categoryId ? categoryMap.get(categoryId) || 'N/A' : 'N/A'
-
-                    return (
-                      <TableRow key={expense.record_id}>
-                        <TableCell className="font-medium tabular-nums">
-                          {expense.fields.datum ? format(parseISO(expense.fields.datum), 'dd.MM.yy', { locale: de }) : '-'}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {expense.fields.beschreibung || '-'}
-                        </TableCell>
-                        <TableCell className="text-sm">{categoryName}</TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">
-                          {formatCurrency(expense.fields.betrag || 0)}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+              {/* Category Chart */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Ausgaben nach Kategorie</h2>
+                {categoryBreakdown.length === 0 ? (
+                  <Card className="p-8">
+                    <p className="text-center text-muted-foreground">
+                      Noch keine Ausgaben in diesem Monat
+                    </p>
+                  </Card>
+                ) : (
+                  <Card className="p-6">
+                    <div className="h-[400px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={categoryBreakdown}
+                          layout="vertical"
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <XAxis type="number" />
+                          <YAxis
+                            type="category"
+                            dataKey="categoryName"
+                            width={120}
+                            tick={{ fontSize: 13 }}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => formatCurrency(value)}
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                            }}
+                          />
+                          <Bar
+                            dataKey="amount"
+                            fill="hsl(var(--chart-primary))"
+                            radius={[0, 8, 8, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Quick Stats */}
+              <div className="space-y-4">
+                <Card className="p-6">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    Durchschnitt pro Tag
+                  </p>
+                  <p className="text-3xl font-bold">{formatCurrency(quickStats.avgPerDay)}</p>
+                </Card>
+                <Card className="p-6">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    Anzahl Ausgaben
+                  </p>
+                  <p className="text-3xl font-bold">{quickStats.count}</p>
+                </Card>
+                <Card className="p-6">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    Größte Kategorie
+                  </p>
+                  <p className="text-3xl font-bold truncate">{quickStats.topCategory}</p>
+                </Card>
+              </div>
+
+              {/* Recent Expenses */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Letzte Ausgaben</h2>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                  {recentExpenses.length === 0 ? (
+                    <Card className="p-6">
+                      <p className="text-center text-muted-foreground text-sm">
+                        Noch keine Ausgaben erfasst
+                      </p>
+                    </Card>
+                  ) : (
+                    recentExpenses.map((exp) => {
+                      const katId = extractRecordId(exp.fields.kategorie);
+                      const kat = katId ? kategorieMap.get(katId) : null;
+
+                      return (
+                        <Card
+                          key={exp.record_id}
+                          className="p-4 hover:bg-accent transition-colors cursor-pointer border-l-2 border-l-transparent hover:border-l-primary"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm truncate">
+                                {exp.fields.beschreibung || 'Keine Beschreibung'}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-xs text-muted-foreground">
+                                  {exp.fields.datum ? format(parseISO(exp.fields.datum), 'd. MMM', { locale: de }) : '-'}
+                                </p>
+                                {kat && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground">•</span>
+                                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                                      {kat.fields.kategoriename}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-base font-bold whitespace-nowrap">
+                              {formatCurrency(exp.fields.betrag || 0)}
+                            </p>
+                          </div>
+                        </Card>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Layout */}
+        <div className="md:hidden px-4 py-6 pb-24 space-y-6">
+          {/* Hero Section */}
+          <Card
+            className="border-none shadow-md"
+            style={{ background: 'var(--hero-gradient)' }}
+          >
+            <CardContent className="p-8">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Ausgaben diesen Monat
+                </p>
+                <p
+                  className="text-6xl font-light text-primary tracking-tight"
+                  style={{ fontWeight: 300, letterSpacing: '-0.02em' }}
+                >
+                  {formatCurrency(currentMonthData.total)}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {isIncrease ? (
+                    <TrendingUp className="h-3 w-3 text-destructive" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3 text-[hsl(var(--success-color))]" />
+                  )}
+                  <span>
+                    {formatCurrency(Math.abs(monthDiff))} {isIncrease ? 'mehr' : 'weniger'} als letzter Monat
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats - Inline Badges */}
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="flex-shrink-0 bg-muted rounded-lg px-3 py-3 min-w-[140px]">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Ø pro Tag</p>
+              <p className="text-lg font-semibold">{formatCurrency(quickStats.avgPerDay)}</p>
+            </div>
+            <div className="flex-shrink-0 bg-muted rounded-lg px-3 py-3 min-w-[140px]">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Anzahl</p>
+              <p className="text-lg font-semibold">{quickStats.count}</p>
+            </div>
+            <div className="flex-shrink-0 bg-muted rounded-lg px-3 py-3 min-w-[140px]">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Top Kategorie</p>
+              <p className="text-lg font-semibold truncate">{quickStats.topCategory}</p>
+            </div>
+          </div>
+
+          {/* Category Breakdown */}
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold">Nach Kategorie</h2>
+            {categoryBreakdown.slice(0, 5).map((cat) => (
+              <Card key={cat.categoryName} className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-sm">{cat.categoryName}</span>
+                  <span className="font-bold">{formatCurrency(cat.amount)}</span>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all"
+                    style={{ width: `${cat.percentage}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {cat.percentage.toFixed(1)}% des Monatsbudgets
+                </p>
+              </Card>
+            ))}
+          </div>
+
+          {/* Recent Expenses */}
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold">Letzte Ausgaben</h2>
+            <div className="space-y-2">
+              {recentExpenses.slice(0, 8).map((exp) => {
+                const katId = extractRecordId(exp.fields.kategorie);
+                const kat = katId ? kategorieMap.get(katId) : null;
+
+                return (
+                  <Card
+                    key={exp.record_id}
+                    className="p-4 active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm">
+                          {exp.fields.beschreibung || 'Keine Beschreibung'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {exp.fields.datum ? format(parseISO(exp.fields.datum), 'd. MMM', { locale: de }) : '-'}
+                          </p>
+                          {kat && (
+                            <>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                                {kat.fields.kategoriename}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-base font-bold whitespace-nowrap">
+                        {formatCurrency(exp.fields.betrag || 0)}
+                      </p>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Fixed Bottom Button - Mobile */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full h-14 text-base gap-2 shadow-lg">
+                <Plus className="h-5 w-5" />
+                Ausgabe hinzufügen
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Neue Ausgabe</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="beschreibung-mobile">Beschreibung *</Label>
+                  <Input
+                    id="beschreibung-mobile"
+                    value={formData.beschreibung}
+                    onChange={(e) => setFormData({ ...formData, beschreibung: e.target.value })}
+                    required
+                    placeholder="z.B. Einkauf, Kino, Tanken"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="betrag-mobile">Betrag (EUR) *</Label>
+                  <Input
+                    id="betrag-mobile"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.betrag}
+                    onChange={(e) => setFormData({ ...formData, betrag: e.target.value })}
+                    required
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="datum-mobile">Datum *</Label>
+                  <Input
+                    id="datum-mobile"
+                    type="date"
+                    value={formData.datum}
+                    onChange={(e) => setFormData({ ...formData, datum: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="kategorie-mobile">Kategorie</Label>
+                  <Select value={formData.kategorie} onValueChange={(v) => setFormData({ ...formData, kategorie: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kategorie wählen..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kategorien.map((kat) => (
+                        <SelectItem key={kat.record_id} value={kat.record_id}>
+                          {kat.fields.kategoriename}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notizen-mobile">Notizen</Label>
+                  <Textarea
+                    id="notizen-mobile"
+                    value={formData.notizen}
+                    onChange={(e) => setFormData({ ...formData, notizen: e.target.value })}
+                    placeholder="Zusätzliche Informationen..."
+                    rows={3}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? 'Wird gespeichert...' : 'Ausgabe speichern'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: hsl(var(--muted));
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: hsl(var(--muted-foreground) / 0.3);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.5);
+        }
+      `}</style>
     </div>
-  )
+  );
 }

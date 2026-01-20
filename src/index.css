@@ -42,30 +42,34 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.75rem;
+  --background: hsl(40 25% 98%);
+  --foreground: hsl(0 0% 10%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(0 0% 10%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(0 0% 10%);
+  --primary: hsl(185 55% 35%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(40 15% 90%);
+  --secondary-foreground: hsl(0 0% 10%);
+  --muted: hsl(40 15% 94%);
+  --muted-foreground: hsl(0 0% 45%);
+  --accent: hsl(185 60% 92%);
+  --accent-foreground: hsl(0 0% 10%);
+  --destructive: hsl(0 70% 50%);
+  --border: hsl(40 10% 88%);
+  --input: hsl(40 10% 88%);
+  --ring: hsl(185 55% 35%);
+  --chart-1: hsl(185 55% 35%);
+  --chart-2: hsl(142 60% 45%);
+  --chart-3: hsl(185 40% 60%);
+  --chart-4: hsl(40 60% 55%);
+  --chart-5: hsl(0 70% 50%);
+  --hero-gradient: linear-gradient(to bottom, hsl(40 25% 98%), hsl(185 30% 96%));
+  --success-color: hsl(142 60% 45%);
+  --chart-primary: hsl(185 55% 35%);
+  --chart-secondary: hsl(185 40% 60%);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -116,5 +120,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
   }
 }

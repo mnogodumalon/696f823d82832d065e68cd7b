@@ -236,6 +236,13 @@ Starte JETZT mit Schritt 1!"""
             # B. Wenn er fertig ist (oder Fehler)
             elif isinstance(message, ResultMessage):
                 status = "success" if not message.is_error else "error"
+                
+                # Save session_id to file for future resume
+                if message.session_id:
+                    with open("/home/user/app/.claude_session_id", "w") as f:
+                        f.write(message.session_id)
+                    print(f"[LILO] Session ID gespeichert: {message.session_id}")
+                
                 # Output session_id for session persistence
                 print(json.dumps({
                     "type": "result", 

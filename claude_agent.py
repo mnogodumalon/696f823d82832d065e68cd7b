@@ -50,33 +50,58 @@ async def main():
                 run_git_cmd(f"git remote add origin {git_push_url}")
             
             # Save session to repo for future resume (before git add)
+            # Note: Session might not be complete yet (this runs BEFORE ResultMessage)
+            # The save_session_to_repo() in sandbox.py will save again AFTER completion
             print("[DEPLOY] 💾 Sichere Session für spätere Nutzung...")
-            subprocess.run(
-                "rm -rf /home/user/app/.claude_session && cp -r ~/.claude /home/user/app/.claude_session 2>/dev/null || true",
+            
+            # DEBUG: Show full ~/.claude structure
+            debug_result = subprocess.run(
+                "find ~/.claude -type f -o -type d 2>/dev/null | head -30",
                 shell=True,
+                capture_output=True,
+                text=True
+            )
+            print(f"[DEPLOY DEBUG] ~/.claude structure:\n{debug_result.stdout}")
+            
+            # Copy session directory
+            copy_result = subprocess.run(
+                "rm -rf /home/user/app/.claude_session && cp -r ~/.claude /home/user/app/.claude_session 2>&1",
+                shell=True,
+                capture_output=True,
+                text=True,
                 cwd="/home/user/app"
             )
+            if copy_result.returncode != 0:
+                print(f"[DEPLOY] ⚠️ Session copy failed: {copy_result.stderr}")
+            else:
+                print("[DEPLOY] ✅ Session kopiert nach .claude_session/")
             
-            # Find and save current session_id from ~/.claude/ directory
-            # Sessions are stored in ~/.claude/projects/<project-hash>/sessions/<session-id>/
+            # Find session_id - look in session-env directory
             # Session IDs are UUIDs like: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-            find_session_cmd = """
-            find ~/.claude -type d 2>/dev/null | grep -E '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' | head -1 | xargs -r basename
-            """
+            find_session_cmd = """ls -1 ~/.claude/session-env/ 2>/dev/null | head -5"""
             session_result = subprocess.run(
                 find_session_cmd,
                 shell=True,
                 capture_output=True,
                 text=True
             )
-            session_id = session_result.stdout.strip()
-            # Validate it looks like a UUID
-            if session_id and len(session_id) == 36 and session_id.count('-') == 4:
+            print(f"[DEPLOY DEBUG] session-env contents: {session_result.stdout.strip()}")
+            
+            # Extract UUID from listing
+            session_id = None
+            for line in session_result.stdout.strip().split('\n'):
+                if line:
+                    # Validate UUID format
+                    if len(line) == 36 and line.count('-') == 4:
+                        session_id = line
+                        break
+            
+            if session_id:
                 with open("/home/user/app/.claude_session_id", "w") as f:
                     f.write(session_id)
                 print(f"[DEPLOY] ✅ Session ID gefunden und gespeichert: {session_id}")
             else:
-                print(f"[DEPLOY] ⚠️ Keine gültige Session ID gefunden (got: '{session_id}')")
+                print(f"[DEPLOY] ⚠️ Keine gültige Session ID gefunden (ResultMessage wird später speichern)")
             
             # Neuen Code committen (includes .claude_session/ and .claude_session_id)
             run_git_cmd("git add -A")

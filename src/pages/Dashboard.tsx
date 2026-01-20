@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, eachDayOfInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { AlertCircle, TrendingUp, TrendingDown, PlusCircle } from 'lucide-react';
+import { AlertCircle, TrendingUp, TrendingDown, PlusCircle, Car } from 'lucide-react';
 
 // Utility function for German currency formatting
 function formatCurrency(value: number | null | undefined): string {
@@ -360,6 +360,18 @@ export default function Dashboard() {
       .slice(0, 8);
   }, [ausgaben]);
 
+  // Sparziel: Mazda 6
+  const mazda6Goal = 25000; // Sparziel in EUR
+  const totalSavings = useMemo(() => {
+    // Berechne Gesamtausgaben
+    const totalExpenses = ausgaben.reduce((sum, ausgabe) => sum + (ausgabe.fields.betrag || 0), 0);
+    // Annahme: Gespartes Geld = Differenz zum Ziel (kann angepasst werden)
+    // Für Demo: Zeige wie viel noch fehlt basierend auf monatlichen Ausgaben
+    return monthlyTotal > 0 ? Math.max(0, mazda6Goal - (monthlyTotal * 12)) : mazda6Goal;
+  }, [ausgaben, monthlyTotal]);
+
+  const savingsProgress = ((mazda6Goal - totalSavings) / mazda6Goal) * 100;
+
   function handleExpenseAdded() {
     setDialogOpen(false);
     fetchData();
@@ -445,6 +457,59 @@ export default function Dashboard() {
                     {Math.abs(monthlyChange).toFixed(1)}% vs. Vormonat
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Sparziel: Mazda 6 */}
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="h-5 w-5 text-primary" />
+                  Sparziel: Mazda 6
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Noch benötigt</div>
+                      <div className="text-3xl font-bold text-primary">{formatCurrency(totalSavings)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Ziel</div>
+                      <div className="text-xl font-semibold">{formatCurrency(mazda6Goal)}</div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{savingsProgress.toFixed(1)}% erreicht</span>
+                      <span>Mein Lieblingsauto 🚗</span>
+                    </div>
+                    <div className="h-3 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(savingsProgress, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Motivation Text */}
+                  <div className="text-sm text-muted-foreground text-center pt-2 border-t border-border">
+                    {savingsProgress >= 100 ? (
+                      <span className="text-primary font-medium">🎉 Ziel erreicht! Zeit für den Mazda 6!</span>
+                    ) : savingsProgress >= 75 ? (
+                      <span>Fast geschafft! Nur noch ein bisschen sparen.</span>
+                    ) : savingsProgress >= 50 ? (
+                      <span>Halbzeit! Du bist auf einem guten Weg.</span>
+                    ) : savingsProgress >= 25 ? (
+                      <span>Guter Start! Weiter so!</span>
+                    ) : (
+                      <span>Der Weg zum Traumauto beginnt hier.</span>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

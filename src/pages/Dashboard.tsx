@@ -395,7 +395,7 @@ export default function Dashboard() {
             {monthComparison && (
               <div className="flex items-center justify-center gap-1 text-xs">
                 {monthComparison.isUp ? (
-                  <TrendingUp className="h-3 w-3 text-accent" />
+                  <TrendingUp className="h-3 w-3" style={{ color: 'hsl(270 70% 60%)' }} />
                 ) : (
                   <TrendingDown className="h-3 w-3 text-chart-2" />
                 )}
@@ -513,21 +513,21 @@ export default function Dashboard() {
                         </defs>
                         <XAxis
                           dataKey="date"
-                          tick={{ fontSize: 12, fill: 'hsl(25 10% 50%)' }}
-                          stroke="hsl(40 20% 88%)"
+                          tick={{ fontSize: 12, fill: 'hsl(270 30% 50%)' }}
+                          stroke="hsl(270 20% 88%)"
                         />
                         <YAxis
-                          tick={{ fontSize: 12, fill: 'hsl(25 10% 50%)' }}
-                          stroke="hsl(40 20% 88%)"
+                          tick={{ fontSize: 12, fill: 'hsl(270 30% 50%)' }}
+                          stroke="hsl(270 20% 88%)"
                         />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: 'hsl(40 30% 99%)',
-                            border: '1px solid hsl(40 20% 88%)',
+                            backgroundColor: 'hsl(270 30% 99%)',
+                            border: '1px solid hsl(270 20% 88%)',
                             borderRadius: '8px',
                           }}
                           formatter={(value: number) => formatCurrency(value)}
-                          labelStyle={{ color: 'hsl(25 15% 20%)' }}
+                          labelStyle={{ color: 'hsl(270 30% 30%)' }}
                         />
                         <Area
                           type="monotone"
@@ -584,7 +584,7 @@ export default function Dashboard() {
                           <div
                             key={exp.record_id}
                             className="grid grid-cols-[120px_1fr_150px_120px] gap-4 p-4 hover:bg-muted/30 transition-colors cursor-pointer group"
-                            style={idx % 2 === 0 ? { backgroundColor: 'hsl(40 20% 97%)' } : {}}
+                            style={idx % 2 === 0 ? { backgroundColor: 'hsl(270 20% 97%)' } : {}}
                             onClick={() => setSelectedExpense(exp)}
                           >
                             <div className="text-sm text-muted-foreground">

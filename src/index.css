@@ -42,30 +42,31 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 1rem;
+  --background: hsl(38 30% 96%);
+  --foreground: hsl(20 10% 20%);
+  --card: hsl(40 40% 98%);
+  --card-foreground: hsl(20 10% 20%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(20 10% 20%);
+  --primary: hsl(180 45% 35%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(38 20% 92%);
+  --secondary-foreground: hsl(20 10% 20%);
+  --muted: hsl(38 20% 92%);
+  --muted-foreground: hsl(20 8% 50%);
+  --accent: hsl(180 45% 35%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 65% 50%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(38 20% 88%);
+  --input: hsl(38 20% 88%);
+  --ring: hsl(180 45% 35%);
+  --chart-1: hsl(180 45% 35%);
+  --chart-2: hsl(142 40% 45%);
+  --chart-3: hsl(38 70% 55%);
+  --chart-4: hsl(0 65% 50%);
+  --chart-5: hsl(280 60% 50%);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -74,6 +75,10 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Custom gradients */
+  --gradient-page: linear-gradient(to bottom, hsl(38 30% 96%), hsl(38 25% 94%));
+  --gradient-hero: linear-gradient(to bottom, hsl(40 40% 98%), hsl(42 35% 97%));
 }
 
 .dark {
@@ -116,5 +121,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: linear-gradient(to bottom, hsl(38 30% 96%), hsl(38 25% 94%));
+    min-height: 100vh;
   }
 }

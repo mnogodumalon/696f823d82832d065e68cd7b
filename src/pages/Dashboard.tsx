@@ -510,8 +510,8 @@ export default function Dashboard() {
                     <AreaChart data={chartData}>
                       <defs>
                         <linearGradient id="colorBetrag" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(25 60% 45%)" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="hsl(25 60% 45%)" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="hsl(210 80% 50%)" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="hsl(210 80% 50%)" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(35 20% 85%)" opacity={0.3} />
@@ -545,7 +545,7 @@ export default function Dashboard() {
                       <Area
                         type="monotone"
                         dataKey="betrag"
-                        stroke="hsl(25 60% 45%)"
+                        stroke="hsl(210 80% 50%)"
                         strokeWidth={3}
                         fill="url(#colorBetrag)"
                         dot={false}

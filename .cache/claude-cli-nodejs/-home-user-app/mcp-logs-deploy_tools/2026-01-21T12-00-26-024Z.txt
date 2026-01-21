@@ -1,8 +1,0 @@
-[
-  {
-    "debug": "Calling MCP tool: deploy_to_github",
-    "timestamp": "2026-01-21T12:05:38.316Z",
-    "sessionId": "50dbc8af-f065-4bbb-9586-d18aac1a09e8",
-    "cwd": "/home/user/app"
-  }
-]

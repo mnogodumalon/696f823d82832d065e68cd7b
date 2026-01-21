@@ -1,616 +1,657 @@
-import { useEffect, useState, useMemo } from 'react';
-import type { Ausgaben, Kategorien } from '@/types/app';
-import { LivingAppsService, extractRecordId } from '@/services/livingAppsService';
-import { format, parseISO, subDays, isAfter } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { useState, useEffect, useMemo } from 'react';
+import type { Ausgaben, Kategorien, CreateAusgabeErfassen } from '@/types/app';
+import { APP_IDS } from '@/types/app';
+import { LivingAppsService, extractRecordId, createRecordUrl } from '@/services/livingAppsService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  TrendingUp,
-  Wallet,
-  Receipt,
-  PieChart as PieChartIcon,
-  AlertCircle,
-  Calendar
-} from 'lucide-react';
-
-/**
- * ANTWORT AUS UNSEREM CHATVERLAUF:
- *
- * Wir haben gerade ein komplettes Ausgabentracker-Dashboard für Living Apps erstellt:
- *
- * 1. ANALYSE: Ich habe app_metadata.json analysiert und verstanden, dass es sich um
- *    ein Ausgabentracker-System mit 3 Apps handelt:
- *    - Kategorien (für Ausgabenkategorien)
- *    - Ausgaben (Hauptdaten mit Betrag, Datum, Kategorie)
- *    - Ausgabe erfassen (Formular-App)
- *
- * 2. DESIGN: Ich habe mit dem frontend-design Skill ein detailliertes design_brief.md
- *    erstellt mit:
- *    - 4 Hero-Metriken (Gesamtausgaben, Ø pro Tag, Anzahl, Top Kategorie)
- *    - 2 Charts (Bar Chart für Kategorien, Line Chart für Trend)
- *    - Responsive Tabelle mit Desktop/Mobile-Ansichten
- *    - Zeitraum- und Kategorie-Filter
- *
- * 3. IMPLEMENTIERUNG: Ich habe mit dem frontend-impl Skill das komplette Dashboard
- *    in src/pages/Dashboard.tsx implementiert mit:
- *    - React + TypeScript
- *    - Living Apps API Integration
- *    - shadcn/ui Komponenten
- *    - recharts für Visualisierungen
- *    - Vollständig responsive (Mobile-first)
- *    - Loading States, Error Handling, Empty States
- *    - Deutsche Lokalisierung (Datum, Währung)
- *
- * 4. BUILD & DEPLOY: npm run build erfolgreich ausgeführt und das Dashboard
- *    mit deploy_to_github Tool deployed.
- *
- * Das Dashboard zeigt jetzt schöne Ausgaben-Analytics mit Filtern und Charts!
- */
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AlertCircle, Plus, TrendingUp, TrendingDown, Receipt, FileText } from 'lucide-react';
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, subMonths } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 export default function Dashboard() {
-  // State management
-  const [kategorien, setKategorien] = useState<Kategorien[]>([]);
   const [ausgaben, setAusgaben] = useState<Ausgaben[]>([]);
-  const [timePeriod, setTimePeriod] = useState('30');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [kategorien, setKategorien] = useState<Kategorien[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-  // Create category lookup map for fast access
-  const kategorienMap = useMemo(() => {
-    const map = new Map<string, Kategorien>();
-    kategorien.forEach(kat => {
-      map.set(kat.record_id, kat);
-    });
-    return map;
-  }, [kategorien]);
-
-  // Fetch data on mount
   useEffect(() => {
-    const fetchData = async () => {
+    async function fetchData() {
       try {
-        setIsLoading(true);
-        setError(null);
-
-        const [kategorienData, ausgabenData] = await Promise.all([
-          LivingAppsService.getKategorien(),
-          LivingAppsService.getAusgaben()
+        setLoading(true);
+        const [ausgabenData, kategorienData] = await Promise.all([
+          LivingAppsService.getAusgaben(),
+          LivingAppsService.getKategorien()
         ]);
-
-        setKategorien(kategorienData);
         setAusgaben(ausgabenData);
+        setKategorien(kategorienData);
+        setError(null);
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Fehler beim Laden der Daten. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.');
+        setError(err instanceof Error ? err : new Error('Fehler beim Laden der Daten'));
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
-    };
-
+    }
     fetchData();
   }, []);
 
-  // Filter by time period
-  const filteredByTime = useMemo(() => {
-    if (timePeriod === 'all') return ausgaben;
+  // Create kategorie lookup map
+  const kategorieMap = useMemo(() => {
+    const map = new Map<string, Kategorien>();
+    kategorien.forEach(kat => map.set(kat.record_id, kat));
+    return map;
+  }, [kategorien]);
 
-    const days = parseInt(timePeriod);
-    const cutoffDate = subDays(new Date(), days);
+  // Filter expenses for selected month
+  const currentMonthExpenses = useMemo(() => {
+    const monthStart = startOfMonth(selectedMonth);
+    const monthEnd = endOfMonth(selectedMonth);
 
-    return ausgaben.filter(expense => {
-      if (!expense.fields.datum) return false;
-      const expenseDate = parseISO(expense.fields.datum);
-      return isAfter(expenseDate, cutoffDate);
+    return ausgaben.filter(exp => {
+      if (!exp.fields.datum) return false;
+      const expDate = parseISO(exp.fields.datum);
+      return expDate >= monthStart && expDate <= monthEnd;
     });
-  }, [ausgaben, timePeriod]);
+  }, [ausgaben, selectedMonth]);
 
-  // Filter by category
-  const filteredAusgaben = useMemo(() => {
-    if (selectedCategory === 'all') return filteredByTime;
+  // Calculate previous month for comparison
+  const previousMonthExpenses = useMemo(() => {
+    const prevMonth = subMonths(selectedMonth, 1);
+    const monthStart = startOfMonth(prevMonth);
+    const monthEnd = endOfMonth(prevMonth);
 
-    return filteredByTime.filter(expense => {
-      const categoryId = extractRecordId(expense.fields.kategorie);
-      return categoryId === selectedCategory;
+    return ausgaben.filter(exp => {
+      if (!exp.fields.datum) return false;
+      const expDate = parseISO(exp.fields.datum);
+      return expDate >= monthStart && expDate <= monthEnd;
     });
-  }, [filteredByTime, selectedCategory]);
+  }, [ausgaben, selectedMonth]);
 
-  // Calculate hero metrics
-  const totalSpending = useMemo(() => {
-    return filteredAusgaben.reduce((sum, expense) => sum + (expense.fields.betrag || 0), 0);
-  }, [filteredAusgaben]);
+  // Hero KPI: Total monthly spending
+  const monthlyTotal = useMemo(() => {
+    return currentMonthExpenses.reduce((sum, exp) => sum + (exp.fields.betrag || 0), 0);
+  }, [currentMonthExpenses]);
 
-  const avgPerDay = useMemo(() => {
-    if (timePeriod === 'all' || timePeriod === '0') return 0;
-    const days = parseInt(timePeriod);
-    return totalSpending / days;
-  }, [totalSpending, timePeriod]);
+  const previousMonthTotal = useMemo(() => {
+    return previousMonthExpenses.reduce((sum, exp) => sum + (exp.fields.betrag || 0), 0);
+  }, [previousMonthExpenses]);
 
-  const expenseCount = useMemo(() => {
-    return filteredAusgaben.length;
-  }, [filteredAusgaben]);
+  const monthlyChange = useMemo(() => {
+    if (previousMonthTotal === 0) return null;
+    return ((monthlyTotal - previousMonthTotal) / previousMonthTotal) * 100;
+  }, [monthlyTotal, previousMonthTotal]);
 
-  // Calculate spending by category for top category metric and bar chart
-  const categorySpending = useMemo(() => {
-    const spending = new Map<string, { name: string; value: number }>();
+  // Category breakdown
+  const categoryBreakdown = useMemo(() => {
+    const categoryTotals = new Map<string, { name: string; total: number; count: number }>();
 
-    filteredAusgaben.forEach(expense => {
-      const categoryId = extractRecordId(expense.fields.kategorie);
-      const categoryName = categoryId
-        ? (kategorienMap.get(categoryId)?.fields.kategoriename || 'Nicht kategorisiert')
-        : 'Nicht kategorisiert';
+    currentMonthExpenses.forEach(exp => {
+      const katId = extractRecordId(exp.fields.kategorie);
+      if (!katId) return;
 
-      const current = spending.get(categoryName) || { name: categoryName, value: 0 };
-      current.value += expense.fields.betrag || 0;
-      spending.set(categoryName, current);
-    });
+      const kategorie = kategorieMap.get(katId);
+      const name = kategorie?.fields.kategoriename || 'Unbekannt';
+      const current = categoryTotals.get(katId) || { name, total: 0, count: 0 };
 
-    return Array.from(spending.values()).sort((a, b) => b.value - a.value);
-  }, [filteredAusgaben, kategorienMap]);
-
-  const topCategory = useMemo(() => {
-    return categorySpending.length > 0 ? categorySpending[0] : null;
-  }, [categorySpending]);
-
-  // Calculate daily spending trend for line chart
-  const dailySpending = useMemo(() => {
-    const spending = new Map<string, number>();
-
-    filteredAusgaben.forEach(expense => {
-      if (!expense.fields.datum) return;
-      const date = expense.fields.datum;
-      spending.set(date, (spending.get(date) || 0) + (expense.fields.betrag || 0));
+      categoryTotals.set(katId, {
+        name,
+        total: current.total + (exp.fields.betrag || 0),
+        count: current.count + 1
+      });
     });
 
-    return Array.from(spending.entries())
-      .map(([date, value]) => ({ date, value }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [filteredAusgaben]);
+    return Array.from(categoryTotals.values())
+      .sort((a, b) => b.total - a.total);
+  }, [currentMonthExpenses, kategorieMap]);
 
-  // Format helpers
-  const formatEUR = (amount: number) =>
-    new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
+  // Chart data: last 30 days
+  const chartData = useMemo(() => {
+    const monthStart = startOfMonth(selectedMonth);
+    const monthEnd = endOfMonth(selectedMonth);
+    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'Kein Datum';
-    try {
-      return format(parseISO(dateString), 'dd.MM.yyyy', { locale: de });
-    } catch {
-      return dateString;
+    const dailyTotals = new Map<string, number>();
+
+    currentMonthExpenses.forEach(exp => {
+      if (!exp.fields.datum) return;
+      const dateKey = exp.fields.datum.split('T')[0];
+      const current = dailyTotals.get(dateKey) || 0;
+      dailyTotals.set(dateKey, current + (exp.fields.betrag || 0));
+    });
+
+    return days.map(day => {
+      const dateKey = format(day, 'yyyy-MM-dd');
+      return {
+        date: format(day, 'd. MMM', { locale: de }),
+        dateKey,
+        betrag: dailyTotals.get(dateKey) || 0
+      };
+    });
+  }, [currentMonthExpenses, selectedMonth]);
+
+  // Recent expenses (last 10)
+  const recentExpenses = useMemo(() => {
+    return [...currentMonthExpenses]
+      .sort((a, b) => {
+        const dateA = a.fields.datum || '';
+        const dateB = b.fields.datum || '';
+        return dateB.localeCompare(dateA);
+      })
+      .slice(0, 10);
+  }, [currentMonthExpenses]);
+
+  // Average daily spending
+  const avgDailySpending = useMemo(() => {
+    const daysInMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
+    return monthlyTotal / daysInMonth;
+  }, [monthlyTotal, selectedMonth]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount);
+  };
+
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return '-';
+    const date = parseISO(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
+      return 'Heute';
+    } else if (format(date, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) {
+      return 'Gestern';
+    } else {
+      return format(date, 'd. MMM', { locale: de });
     }
   };
 
-  const getCategoryName = (categoryUrl: string | undefined) => {
-    if (!categoryUrl) return 'Nicht kategorisiert';
-    const categoryId = extractRecordId(categoryUrl);
-    if (!categoryId) return 'Nicht kategorisiert';
-    return kategorienMap.get(categoryId)?.fields.kategoriename || 'Nicht kategorisiert';
-  };
-
-  // Get time period label
-  const getTimePeriodLabel = () => {
-    switch (timePeriod) {
-      case '7': return 'Letzte 7 Tage';
-      case '30': return 'Letzte 30 Tage';
-      case '90': return 'Letzte 90 Tage';
-      case '365': return 'Letztes Jahr';
-      case 'all': return 'Alle Zeit';
-      default: return `Letzte ${timePeriod} Tage`;
-    }
-  };
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-10 w-48 mt-4 md:mt-0" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-32" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-[300px] w-full" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-[300px] w-full" />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <LoadingState />;
   }
 
-  // Error state
   if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-6 flex items-center justify-center">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
-              <AlertCircle className="h-5 w-5" />
-              Fehler beim Laden
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition"
-            >
-              Erneut versuchen
-            </button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <ErrorState error={error} onRetry={() => window.location.reload()} />;
   }
 
-  // Empty state (no expenses at all)
   if (ausgaben.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Ausgabentracker Dashboard</h1>
-        <Card className="max-w-md mx-auto">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Receipt className="h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Noch keine Ausgaben erfasst</h3>
-            <p className="text-gray-600 mb-6">
-              Fügen Sie Ihre erste Ausgabe hinzu, um die Auswertung zu sehen.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <EmptyState />;
   }
-
-  // No expenses in selected period
-  const noDataInPeriod = filteredAusgaben.length === 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
-          <h1 className="text-3xl font-bold text-gray-900">Ausgabentracker Dashboard</h1>
-          <Select value={timePeriod} onValueChange={setTimePeriod}>
-            <SelectTrigger className="w-full md:w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Letzte 7 Tage</SelectItem>
-              <SelectItem value="30">Letzte 30 Tage</SelectItem>
-              <SelectItem value="90">Letzte 90 Tage</SelectItem>
-              <SelectItem value="365">Letztes Jahr</SelectItem>
-              <SelectItem value="all">Alle Zeit</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <p className="text-sm text-gray-600">
-          <Calendar className="inline h-4 w-4 mr-1" />
-          Zeitraum: {getTimePeriodLabel()}
-        </p>
-      </div>
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <h1 className="text-xl font-semibold">Ausgabentracker</h1>
 
-      {noDataInPeriod ? (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Keine Ausgaben im gewählten Zeitraum gefunden. Wählen Sie einen anderen Zeitraum aus.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <>
-          {/* Hero Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* Total Spending */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                  <Wallet className="h-4 w-4" />
-                  Gesamtausgaben
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl md:text-3xl font-bold tabular-nums text-primary">
-                  {formatEUR(totalSpending)}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex items-center gap-4">
+              {/* Month selector */}
+              <Select
+                value={format(selectedMonth, 'yyyy-MM')}
+                onValueChange={(value) => {
+                  const [year, month] = value.split('-').map(Number);
+                  setSelectedMonth(new Date(year, month - 1, 1));
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const date = subMonths(new Date(), i);
+                    return (
+                      <SelectItem key={i} value={format(date, 'yyyy-MM')}>
+                        {format(date, 'MMMM yyyy', { locale: de })}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
 
-            {/* Average per Day */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  Ø pro Tag
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl md:text-3xl font-bold tabular-nums text-gray-900">
-                  {formatEUR(avgPerDay)}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Expense Count */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  Anzahl Ausgaben
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl md:text-3xl font-bold tabular-nums text-gray-900">
-                  {expenseCount}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Top Category */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                  <PieChartIcon className="h-4 w-4" />
-                  Top Kategorie
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {topCategory ? (
-                  <>
-                    <div className="text-xl font-semibold text-gray-900 mb-1 truncate">
-                      {topCategory.name}
-                    </div>
-                    <div className="text-sm font-bold tabular-nums text-primary">
-                      {formatEUR(topCategory.value)}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-sm text-gray-500">Keine Daten</div>
-                )}
-              </CardContent>
-            </Card>
+              {/* Desktop: Primary action button */}
+              <div className="hidden md:block">
+                <AddExpenseDialog onSuccess={() => window.location.reload()} kategorien={kategorien} />
+              </div>
+            </div>
           </div>
+        </div>
+      </header>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            {/* Bar Chart - Spending by Category */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Ausgaben pro Kategorie</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {categorySpending.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={categorySpending}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
-                      <XAxis
-                        dataKey="name"
-                        className="text-xs"
-                        tick={{ fill: '#6b7280' }}
-                      />
-                      <YAxis
-                        className="text-xs"
-                        tick={{ fill: '#6b7280' }}
-                        tickFormatter={(value) => `${value}€`}
-                      />
-                      <Tooltip
-                        formatter={(value: number) => formatEUR(value)}
-                        contentStyle={{
-                          backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px'
-                        }}
-                      />
-                      <Bar
-                        dataKey="value"
-                        fill="hsl(var(--primary))"
-                        radius={[8, 8, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
-                    Keine Kategorien vorhanden
+      {/* Main Content */}
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Desktop Layout: 60/40 split */}
+        <div className="grid gap-6 lg:grid-cols-[60%_40%]">
+          {/* Left Column */}
+          <div className="space-y-6">
+            {/* Hero Card */}
+            <Card className="hero-card border-none shadow-md">
+              <CardContent className="p-8">
+                <div className="mb-2 text-sm text-muted-foreground">Ausgaben dieses Monat</div>
+                <div className="hero-number mb-3">{formatCurrency(monthlyTotal)}</div>
+                {monthlyChange !== null && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {monthlyChange > 0 ? (
+                      <>
+                        <TrendingUp className="h-4 w-4 text-destructive" />
+                        <span>+{monthlyChange.toFixed(1)}% vs. letzter Monat</span>
+                      </>
+                    ) : (
+                      <>
+                        <TrendingDown className="h-4 w-4 text-chart-2" />
+                        <span>{monthlyChange.toFixed(1)}% vs. letzter Monat</span>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Line Chart - Spending Trend */}
+            {/* Secondary KPIs */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Durchschnitt pro Tag
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-semibold">{formatCurrency(avgDailySpending)}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Anzahl Ausgaben
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-semibold">{currentMonthExpenses.length}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Spending Trend Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl font-semibold">Ausgaben-Trend</CardTitle>
+                <CardTitle>Ausgaben Verlauf</CardTitle>
               </CardHeader>
               <CardContent>
-                {dailySpending.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={dailySpending}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="colorBetrag" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
                       <XAxis
                         dataKey="date"
-                        className="text-xs"
-                        tick={{ fill: '#6b7280' }}
-                        tickFormatter={(value) => {
-                          try {
-                            return format(parseISO(value), 'dd.MM', { locale: de });
-                          } catch {
-                            return value;
-                          }
-                        }}
+                        tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                        stroke="hsl(var(--border))"
                       />
                       <YAxis
-                        className="text-xs"
-                        tick={{ fill: '#6b7280' }}
-                        tickFormatter={(value) => `${value}€`}
+                        tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                        stroke="hsl(var(--border))"
+                        tickFormatter={(value) => `€${value}`}
                       />
                       <Tooltip
-                        formatter={(value: number) => formatEUR(value)}
-                        labelFormatter={(label) => formatDate(label)}
                         contentStyle={{
-                          backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px'
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          color: 'hsl(var(--foreground))'
                         }}
+                        formatter={(value: number) => [formatCurrency(value), 'Betrag']}
                       />
                       <Area
                         type="monotone"
-                        dataKey="value"
-                        stroke="hsl(var(--primary))"
-                        fill="hsl(var(--primary) / 0.2)"
+                        dataKey="betrag"
+                        stroke="hsl(var(--chart-1))"
+                        strokeWidth={2}
+                        fill="url(#colorBetrag)"
                       />
                     </AreaChart>
                   </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Category Breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Kategorien</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {categoryBreakdown.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Keine Kategorien für diesen Monat</p>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
-                    Keine Daten verfügbar
+                  <div className="space-y-4">
+                    {categoryBreakdown.map((cat, idx) => {
+                      const percentage = monthlyTotal > 0 ? (cat.total / monthlyTotal) * 100 : 0;
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{cat.name}</span>
+                            <span className="font-semibold">{formatCurrency(cat.total)}</span>
+                          </div>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full bg-primary transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {percentage.toFixed(1)}% · {cat.count} {cat.count === 1 ? 'Ausgabe' : 'Ausgaben'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Expenses */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Letzte Ausgaben</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentExpenses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Keine Ausgaben in diesem Monat</p>
+                ) : (
+                  <div className="space-y-3">
+                    {recentExpenses.map((exp) => {
+                      const katId = extractRecordId(exp.fields.kategorie);
+                      const kategorie = katId ? kategorieMap.get(katId) : null;
+
+                      return (
+                        <div
+                          key={exp.record_id}
+                          className="flex items-start justify-between gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+                        >
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">
+                                {exp.fields.beschreibung || 'Ohne Beschreibung'}
+                              </span>
+                              {exp.fields.beleg && (
+                                <Receipt className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{formatDate(exp.fields.datum)}</span>
+                              {kategorie && (
+                                <>
+                                  <span>·</span>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {kategorie.fields.kategoriename}
+                                  </Badge>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-sm font-semibold">
+                            {formatCurrency(exp.fields.betrag || 0)}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
+        </div>
+      </main>
 
-          {/* Expenses Table */}
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <CardTitle className="text-xl font-semibold">Letzte Ausgaben</CardTitle>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-full sm:w-56">
-                    <SelectValue placeholder="Alle Kategorien" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Alle Kategorien</SelectItem>
-                    {kategorien.map(kat => (
-                      <SelectItem key={kat.record_id} value={kat.record_id}>
-                        {kat.fields.kategoriename || 'Unbenannt'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Desktop Table */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs font-medium uppercase tracking-wide">Datum</TableHead>
-                      <TableHead className="text-xs font-medium uppercase tracking-wide">Kategorie</TableHead>
-                      <TableHead className="text-xs font-medium uppercase tracking-wide">Beschreibung</TableHead>
-                      <TableHead className="text-xs font-medium uppercase tracking-wide text-right">Betrag</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAusgaben
-                      .sort((a, b) => {
-                        const dateA = a.fields.datum || '';
-                        const dateB = b.fields.datum || '';
-                        return dateB.localeCompare(dateA); // Most recent first
-                      })
-                      .slice(0, 10)
-                      .map(expense => (
-                        <TableRow key={expense.record_id}>
-                          <TableCell className="text-sm">
-                            {formatDate(expense.fields.datum)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="text-xs">
-                              {getCategoryName(expense.fields.kategorie)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {expense.fields.beschreibung || '-'}
-                          </TableCell>
-                          <TableCell className="text-sm font-semibold tabular-nums text-right">
-                            {formatEUR(expense.fields.betrag || 0)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </div>
+      {/* Mobile: Fixed Bottom Action Button */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card p-4 md:hidden">
+        <AddExpenseDialog onSuccess={() => window.location.reload()} kategorien={kategorien} fullWidth />
+      </div>
+    </div>
+  );
+}
 
-              {/* Mobile Cards */}
-              <div className="md:hidden space-y-4">
-                {filteredAusgaben
-                  .sort((a, b) => {
-                    const dateA = a.fields.datum || '';
-                    const dateB = b.fields.datum || '';
-                    return dateB.localeCompare(dateA);
-                  })
-                  .slice(0, 10)
-                  .map(expense => (
-                    <Card key={expense.record_id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-xs text-gray-600">
-                            {formatDate(expense.fields.datum)}
-                          </span>
-                          <span className="text-lg font-bold tabular-nums text-primary">
-                            {formatEUR(expense.fields.betrag || 0)}
-                          </span>
-                        </div>
-                        <p className="text-sm font-medium text-gray-900 mb-2">
-                          {expense.fields.beschreibung || 'Keine Beschreibung'}
-                        </p>
-                        <Badge variant="secondary" className="text-xs">
-                          {getCategoryName(expense.fields.kategorie)}
-                        </Badge>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
+// Add Expense Dialog Component
+function AddExpenseDialog({
+  onSuccess,
+  kategorien,
+  fullWidth = false
+}: {
+  onSuccess: () => void;
+  kategorien: Kategorien[];
+  fullWidth?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState<Partial<CreateAusgabeErfassen>>({
+    datum_ausgabe: format(new Date(), 'yyyy-MM-dd'),
+    betrag_ausgabe: undefined,
+    beschreibung_ausgabe: '',
+    kategorie_auswahl: undefined,
+    notizen_ausgabe: ''
+  });
 
-              {filteredAusgaben.length > 10 && (
-                <p className="text-sm text-gray-600 mt-4 text-center">
-                  Zeige 10 von {filteredAusgaben.length} Ausgaben
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </>
-      )}
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.betrag_ausgabe || !formData.datum_ausgabe) {
+      alert('Bitte Betrag und Datum eingeben');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const apiData: CreateAusgabeErfassen = {
+        betrag_ausgabe: formData.betrag_ausgabe,
+        datum_ausgabe: formData.datum_ausgabe,
+        beschreibung_ausgabe: formData.beschreibung_ausgabe || '',
+        kategorie_auswahl: formData.kategorie_auswahl || undefined,
+        notizen_ausgabe: formData.notizen_ausgabe || ''
+      };
+
+      await LivingAppsService.createAusgabeErfassenEntry(apiData);
+      setOpen(false);
+      onSuccess();
+    } catch (err) {
+      console.error('Failed to create expense:', err);
+      alert('Fehler beim Speichern der Ausgabe');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="lg"
+          className={fullWidth ? 'w-full' : ''}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Ausgabe hinzufügen
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Neue Ausgabe erfassen</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="betrag">Betrag (EUR) *</Label>
+            <Input
+              id="betrag"
+              type="number"
+              step="0.01"
+              required
+              value={formData.betrag_ausgabe || ''}
+              onChange={(e) => setFormData({ ...formData, betrag_ausgabe: parseFloat(e.target.value) })}
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="datum">Datum *</Label>
+            <Input
+              id="datum"
+              type="date"
+              required
+              value={formData.datum_ausgabe}
+              onChange={(e) => setFormData({ ...formData, datum_ausgabe: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="kategorie">Kategorie</Label>
+            <Select
+              value={formData.kategorie_auswahl || 'none'}
+              onValueChange={(value) =>
+                setFormData({
+                  ...formData,
+                  kategorie_auswahl: value === 'none' ? undefined : value
+                })
+              }
+            >
+              <SelectTrigger id="kategorie">
+                <SelectValue placeholder="Kategorie wählen..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Keine Kategorie</SelectItem>
+                {kategorien.map((kat) => (
+                  <SelectItem
+                    key={kat.record_id}
+                    value={createRecordUrl(APP_IDS.KATEGORIEN, kat.record_id)}
+                  >
+                    {kat.fields.kategoriename || 'Unbenannt'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="beschreibung">Beschreibung</Label>
+            <Input
+              id="beschreibung"
+              value={formData.beschreibung_ausgabe}
+              onChange={(e) => setFormData({ ...formData, beschreibung_ausgabe: e.target.value })}
+              placeholder="z.B. Einkauf bei Supermarkt"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notizen">Notizen</Label>
+            <Textarea
+              id="notizen"
+              value={formData.notizen_ausgabe}
+              onChange={(e) => setFormData({ ...formData, notizen_ausgabe: e.target.value })}
+              placeholder="Optional..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="flex-1"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="flex-1"
+            >
+              {submitting ? 'Speichern...' : 'Speichern'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Loading State Component
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-background p-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <Skeleton className="h-12 w-64" />
+        <div className="grid gap-6 lg:grid-cols-[60%_40%]">
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+            <Skeleton className="h-96 w-full" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Error State Component
+function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Alert variant="destructive" className="max-w-md">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Fehler beim Laden</AlertTitle>
+        <AlertDescription className="mt-2 space-y-2">
+          <p>{error.message}</p>
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            Erneut versuchen
+          </Button>
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
+}
+
+// Empty State Component
+function EmptyState() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="max-w-md text-center">
+        <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h2 className="mt-4 text-xl font-semibold">Keine Ausgaben vorhanden</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Fügen Sie Ihre erste Ausgabe hinzu, um Ihre Finanzen zu verfolgen.
+        </p>
+        <Button className="mt-6" onClick={() => window.location.reload()}>
+          <Plus className="mr-2 h-4 w-4" />
+          Ausgabe hinzufügen
+        </Button>
+      </div>
     </div>
   );
 }

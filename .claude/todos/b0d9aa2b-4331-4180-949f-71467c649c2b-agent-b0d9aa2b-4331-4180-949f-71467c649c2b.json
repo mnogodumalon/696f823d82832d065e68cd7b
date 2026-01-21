@@ -1,0 +1,27 @@
+[
+  {
+    "content": "Analyze app structure from app_metadata.json",
+    "status": "completed",
+    "activeForm": "Analyzing app structure from app_metadata.json"
+  },
+  {
+    "content": "Create design_brief.md using frontend-design skill",
+    "status": "completed",
+    "activeForm": "Creating design_brief.md using frontend-design skill"
+  },
+  {
+    "content": "Implement Dashboard.tsx using frontend-impl skill",
+    "status": "completed",
+    "activeForm": "Implementing Dashboard.tsx using frontend-impl skill"
+  },
+  {
+    "content": "Build the application",
+    "status": "completed",
+    "activeForm": "Building the application"
+  },
+  {
+    "content": "Deploy to GitHub",
+    "status": "in_progress",
+    "activeForm": "Deploying to GitHub"
+  }
+]

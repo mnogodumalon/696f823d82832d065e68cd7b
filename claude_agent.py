@@ -49,62 +49,27 @@ async def main():
                 run_git_cmd("git checkout -b main")
                 run_git_cmd(f"git remote add origin {git_push_url}")
             
-            # Save session to repo for future resume (before git add)
-            # Note: Session might not be complete yet (this runs BEFORE ResultMessage)
-            # The save_session_to_repo() in sandbox.py will save again AFTER completion
-            print("[DEPLOY] 💾 Sichere Session für spätere Nutzung...")
+            # Mit HOME=/home/user/app schreibt das SDK direkt nach /home/user/app/.claude/
+            # Kein Kopieren nötig! .claude ist bereits im Repo-Ordner.
+            print("[DEPLOY] 💾 Session wird mit Code gepusht (HOME=/home/user/app)")
             
-            # DEBUG: Show full ~/.claude structure
-            debug_result = subprocess.run(
-                "find ~/.claude -type f -o -type d 2>/dev/null | head -30",
+            # Session ID wird später von ResultMessage gespeichert
+            # Hier nur prüfen ob .claude existiert
+            check_result = subprocess.run(
+                "ls /home/user/app/.claude 2>&1",
                 shell=True,
                 capture_output=True,
                 text=True
             )
-            print(f"[DEPLOY DEBUG] ~/.claude structure:\n{debug_result.stdout}")
-            
-            # Copy session directory
-            copy_result = subprocess.run(
-                "rm -rf /home/user/app/.claude_session && cp -r ~/.claude /home/user/app/.claude_session 2>&1",
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd="/home/user/app"
-            )
-            if copy_result.returncode != 0:
-                print(f"[DEPLOY] ⚠️ Session copy failed: {copy_result.stderr}")
+            if check_result.returncode == 0:
+                print("[DEPLOY] ✅ .claude/ vorhanden - wird mit gepusht")
             else:
-                print("[DEPLOY] ✅ Session kopiert nach .claude_session/")
+                print("[DEPLOY] ⚠️ .claude/ nicht gefunden")
             
-            # Find session_id - look in session-env directory
-            # Session IDs are UUIDs like: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-            find_session_cmd = """ls -1 ~/.claude/session-env/ 2>/dev/null | head -5"""
-            session_result = subprocess.run(
-                find_session_cmd,
-                shell=True,
-                capture_output=True,
-                text=True
-            )
-            print(f"[DEPLOY DEBUG] session-env contents: {session_result.stdout.strip()}")
-            
-            # Extract UUID from listing
-            session_id = None
-            for line in session_result.stdout.strip().split('\n'):
-                if line:
-                    # Validate UUID format
-                    if len(line) == 36 and line.count('-') == 4:
-                        session_id = line
-                        break
-            
-            if session_id:
-                with open("/home/user/app/.claude_session_id", "w") as f:
-                    f.write(session_id)
-                print(f"[DEPLOY] ✅ Session ID gefunden und gespeichert: {session_id}")
-            else:
-                print(f"[DEPLOY] ⚠️ Keine gültige Session ID gefunden (ResultMessage wird später speichern)")
-            
-            # Neuen Code committen (includes .claude_session/ and .claude_session_id)
+            # Neuen Code committen (includes .claude/ direkt im Repo)
             run_git_cmd("git add -A")
+            # Force add .claude falls in .gitignore
+            subprocess.run("git add -f .claude .claude_session_id 2>/dev/null", shell=True, cwd="/home/user/app")
             run_git_cmd("git commit -m 'Lilo Auto-Deploy' --allow-empty")
             run_git_cmd("git push origin main")
             

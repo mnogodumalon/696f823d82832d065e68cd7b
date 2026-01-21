@@ -427,3 +427,31 @@
 2026-01-21T14:29:36.279Z [DEBUG] Matched 0 unique hooks for query "mcp__deploy_tools__deploy_to_github" (0 before deduplication)
 2026-01-21T14:29:36.280Z [DEBUG] MCP server "deploy_tools": Calling MCP tool: deploy_to_github
 2026-01-21T14:29:46.703Z [ERROR] "AxiosError: Error\n    at NO (/$bunfs/root/claude:27:1143)\n    at <anonymous> (/$bunfs/root/claude:32:10054)\n    at emit (node:events:92:22)\n    at endReadableNT (internal:streams/readable:862:50)\n    at processTicksAndRejections (native:7:39)\n    at request (/$bunfs/root/claude:34:2147)\n    at processTicksAndRejections (native:7:39)"
+2026-01-21T14:30:01.254Z [DEBUG] MCP server "deploy_tools": Tool 'deploy_to_github' completed successfully in 24s
+2026-01-21T14:30:01.257Z [DEBUG] Getting matching hook commands for PostToolUse with query: mcp__deploy_tools__deploy_to_github
+2026-01-21T14:30:01.257Z [DEBUG] Found 0 hook matchers in settings
+2026-01-21T14:30:01.257Z [DEBUG] Matched 0 unique hooks for query "mcp__deploy_tools__deploy_to_github" (0 before deduplication)
+2026-01-21T14:30:01.268Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-01-21T14:30:01.268Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-01-21T14:30:01.268Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-01-21T14:30:01.268Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-01-21T14:30:04.038Z [DEBUG] Stream started - received first chunk
+2026-01-21T14:30:05.989Z [DEBUG] executePreToolHooks called for tool: TodoWrite
+2026-01-21T14:30:05.989Z [DEBUG] Getting matching hook commands for PreToolUse with query: TodoWrite
+2026-01-21T14:30:05.989Z [DEBUG] Found 0 hook matchers in settings
+2026-01-21T14:30:05.989Z [DEBUG] Matched 0 unique hooks for query "TodoWrite" (0 before deduplication)
+2026-01-21T14:30:05.991Z [DEBUG] Writing to temp file: /home/user/app/.claude/todos/b0d9aa2b-4331-4180-949f-71467c649c2b-agent-b0d9aa2b-4331-4180-949f-71467c649c2b.json.tmp.536.1769005805991
+2026-01-21T14:30:05.991Z [DEBUG] Preserving file permissions: 100600
+2026-01-21T14:30:05.992Z [DEBUG] Temp file written successfully, size: 2 bytes
+2026-01-21T14:30:05.992Z [DEBUG] Applied original permissions to temp file
+2026-01-21T14:30:05.992Z [DEBUG] Renaming /home/user/app/.claude/todos/b0d9aa2b-4331-4180-949f-71467c649c2b-agent-b0d9aa2b-4331-4180-949f-71467c649c2b.json.tmp.536.1769005805991 to /home/user/app/.claude/todos/b0d9aa2b-4331-4180-949f-71467c649c2b-agent-b0d9aa2b-4331-4180-949f-71467c649c2b.json
+2026-01-21T14:30:05.992Z [DEBUG] File /home/user/app/.claude/todos/b0d9aa2b-4331-4180-949f-71467c649c2b-agent-b0d9aa2b-4331-4180-949f-71467c649c2b.json written atomically
+2026-01-21T14:30:05.993Z [DEBUG] Getting matching hook commands for PostToolUse with query: TodoWrite
+2026-01-21T14:30:05.993Z [DEBUG] Found 0 hook matchers in settings
+2026-01-21T14:30:05.993Z [DEBUG] Matched 0 unique hooks for query "TodoWrite" (0 before deduplication)
+2026-01-21T14:30:06.004Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-01-21T14:30:06.004Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-01-21T14:30:06.005Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-01-21T14:30:06.005Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-01-21T14:30:08.019Z [DEBUG] Stream started - received first chunk
+2026-01-21T14:30:16.333Z [ERROR] "AxiosError: Error\n    at NO (/$bunfs/root/claude:27:1143)\n    at <anonymous> (/$bunfs/root/claude:32:10054)\n    at emit (node:events:92:22)\n    at endReadableNT (internal:streams/readable:862:50)\n    at processTicksAndRejections (native:7:39)\n    at request (/$bunfs/root/claude:34:2147)\n    at processTicksAndRejections (native:7:39)"

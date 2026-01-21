@@ -2,9 +2,6 @@
 import { APP_IDS } from '@/types/app';
 import type { Kategorien, Ausgaben, AusgabeErfassen } from '@/types/app';
 
-// Re-export APP_IDS for convenience
-export { APP_IDS } from '@/types/app';
-
 // Base Configuration
 const API_BASE_URL = 'https://my.living-apps.de/rest';
 

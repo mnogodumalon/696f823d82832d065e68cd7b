@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { AlertCircle, TrendingUp, TrendingDown, PlusCircle, Calendar, Euro } from 'lucide-react';
+import { AlertCircle, TrendingUp, TrendingDown, PlusCircle, Calendar, Euro, Car } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -559,6 +559,48 @@ export default function Dashboard() {
 
           {/* Right Column (Sidebar) - 1/3 width on desktop */}
           <div className="mt-6 lg:mt-0 space-y-6">
+            {/* Savings Goal - Mazda 6 */}
+            <Card className="shadow-lg border-2 border-accent/20">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                    <Car className="h-6 w-6 text-accent" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">Mazda 6</div>
+                    <div className="text-sm text-muted-foreground">Traumauto Sparziel</div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted-foreground">Gespart</span>
+                      <span className="font-semibold">0,00 € / 15.000 €</span>
+                    </div>
+                    <div className="relative h-3 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-accent rounded-full transition-all duration-500"
+                        style={{ width: '0%' }}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="text-xs text-muted-foreground mb-1">Noch benötigt</div>
+                      <div className="text-lg font-bold text-accent">15.000 €</div>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="text-xs text-muted-foreground mb-1">Fortschritt</div>
+                      <div className="text-lg font-bold">0%</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground pt-2 border-t border-border">
+                    Spare jeden Monat etwas, um deinen Traum zu verwirklichen!
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Desktop Quick Add - Hidden on mobile */}
             <Card className="hidden lg:block">
               <CardHeader>

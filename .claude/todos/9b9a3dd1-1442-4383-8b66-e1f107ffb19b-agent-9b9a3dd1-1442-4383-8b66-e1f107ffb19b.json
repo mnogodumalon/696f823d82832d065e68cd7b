@@ -1,0 +1,22 @@
+[
+  {
+    "content": "Lese src/pages/Dashboard.tsx um die aktuelle Struktur zu verstehen",
+    "status": "completed",
+    "activeForm": "Lese Dashboard.tsx"
+  },
+  {
+    "content": "Implementiere Mazda 6 Sparziel im Dashboard",
+    "status": "completed",
+    "activeForm": "Implementiere Mazda 6 Sparziel"
+  },
+  {
+    "content": "Teste mit npm run build",
+    "status": "completed",
+    "activeForm": "Teste Build"
+  },
+  {
+    "content": "Deploy zu GitHub",
+    "status": "in_progress",
+    "activeForm": "Deploye zu GitHub"
+  }
+]

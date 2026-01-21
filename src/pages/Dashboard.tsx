@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertCircle, Plus, TrendingUp, TrendingDown, Receipt, FileText } from 'lucide-react';
+import { AlertCircle, Plus, TrendingUp, TrendingDown, Receipt, FileText, Car } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, subMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -154,6 +154,18 @@ export default function Dashboard() {
     const daysInMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
     return monthlyTotal / daysInMonth;
   }, [monthlyTotal, selectedMonth]);
+
+  // Savings goal for Mazda6
+  const savingsGoal = {
+    name: 'Mazda6',
+    targetAmount: 35000, // Typical price for a Mazda6
+    currentSavings: 8500, // Current saved amount
+    monthlyTarget: 500 // How much to save per month
+  };
+
+  const savingsProgress = (savingsGoal.currentSavings / savingsGoal.targetAmount) * 100;
+  const remainingAmount = savingsGoal.targetAmount - savingsGoal.currentSavings;
+  const monthsRemaining = Math.ceil(remainingAmount / savingsGoal.monthlyTarget);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
@@ -335,6 +347,58 @@ export default function Dashboard() {
 
           {/* Right Column */}
           <div className="space-y-6">
+            {/* Savings Goal Card */}
+            <Card className="border-chart-2 bg-gradient-to-br from-chart-2/5 to-transparent">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="h-5 w-5 text-chart-2" />
+                  Sparziel: {savingsGoal.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-chart-2">
+                        {formatCurrency(savingsGoal.currentSavings)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        von {formatCurrency(savingsGoal.targetAmount)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-semibold">{savingsProgress.toFixed(1)}%</div>
+                      <div className="text-xs text-muted-foreground">erreicht</div>
+                    </div>
+                  </div>
+
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full bg-chart-2 transition-all"
+                      style={{ width: `${savingsProgress}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="rounded-lg bg-card p-3 border border-border">
+                    <div className="text-xs text-muted-foreground mb-1">Noch zu sparen</div>
+                    <div className="text-sm font-semibold">{formatCurrency(remainingAmount)}</div>
+                  </div>
+                  <div className="rounded-lg bg-card p-3 border border-border">
+                    <div className="text-xs text-muted-foreground mb-1">Noch ca.</div>
+                    <div className="text-sm font-semibold">
+                      {monthsRemaining} {monthsRemaining === 1 ? 'Monat' : 'Monate'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-xs text-muted-foreground text-center">
+                  Bei {formatCurrency(savingsGoal.monthlyTarget)}/Monat
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Category Breakdown */}
             <Card>
               <CardHeader>

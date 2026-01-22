@@ -1,72 +1,72 @@
-# Design Brief: Ausgabentracker Dashboard
+# Design Brief: Ausgabentracker
 
 ## 1. App Analysis
 
 ### What This App Does
-Ausgabentracker (Expense Tracker) helps users track their spending across different categories. Users can log expenses with amounts, dates, categories, descriptions, and attach receipts. The app provides an overview of spending patterns to help users understand where their money goes.
+The Ausgabentracker is an expense tracking application that allows users to record, categorize, and monitor their spending. It consists of three interconnected apps: "Kategorien" for expense categories, "Ausgaben" for the actual expense records with amounts, dates, descriptions, and optional receipts, and "Ausgabe erfassen" for the data entry form.
 
 ### Who Uses This
-Individuals or small business owners who want to monitor their expenses. They need quick insights into total spending, category breakdown, and recent transactions. They care about staying on budget and identifying spending patterns.
+German-speaking individuals who want to keep track of their personal or small business expenses. They're practical people who want a quick overview of where their money goes without the complexity of full accounting software.
 
 ### The ONE Thing Users Care About Most
-**How much money have I spent this month?** This is the first question users ask when opening the app. The total monthly expense amount is the hero metric.
+**"Wie viel habe ich diesen Monat ausgegeben?"** (How much have I spent this month?)
+
+Users open this app to quickly see their current monthly spending total and understand their spending patterns by category.
 
 ### Primary Actions (IMPORTANT!)
-1. **Add new expense** → Primary Action Button (most common action - users log expenses multiple times per day)
-2. View expense details (receipt, notes)
-3. Filter by category or date range
+1. **Ausgabe hinzufügen** → Primary Action Button (Add new expense - the most common action)
+2. View expenses by category
+3. Browse recent expenses
 
 ---
 
 ## 2. What Makes This Design Distinctive
 
 ### Visual Identity
-The design uses a warm, approachable color palette with a soft cream background and deep teal accents. This creates a calm, reassuring feeling - managing money shouldn't feel stressful or corporate. The typography is bold and confident using Source Sans 3, with extreme weight contrast (300 vs 700) that makes numbers pop. The hero KPI uses an oversized euro amount that feels almost celebratory rather than intimidating - normalizing the act of tracking expenses.
+This design uses a sophisticated forest green accent against a warm off-white background, creating a grounded, trustworthy feel appropriate for financial tracking. The green evokes stability and growth—psychological associations that help users feel positive about tracking their finances rather than anxious. The warm paper-like background gives the dashboard a tangible, almost notebook-like quality.
 
 ### Layout Strategy
-**Asymmetric with clear hero dominance.** The monthly total takes up massive visual space at the top (almost 40% of mobile viewport) with a large, bold number treatment. Secondary metrics are intentionally smaller and grouped tightly together, creating visual tension between the hero and supporting data. On desktop, the layout breaks into unequal columns: a wide left column (2/3) for the hero and trend chart, and a narrow right sidebar (1/3) for category breakdown and recent items. This mirrors the user's mental model: "how much total?" (left) vs "where did it go?" (right).
-
-The visual interest comes from:
-- Extreme size difference between hero (72px on mobile) and secondary metrics (16px)
-- Tight clustering of category chips vs generous whitespace around hero
-- Mix of card containers and inline elements (not everything boxed)
-- Vertical rhythm that alternates dense and spacious sections
+- **Asymmetric layout on desktop** with the hero spending total prominently positioned in a wide left column, creating immediate visual impact
+- **Hero emphasis through size**: The monthly total is displayed at 56px on desktop, dwarfing secondary KPIs at 24px—a 2.3x size ratio that creates unmistakable hierarchy
+- **Whitespace as luxury**: Generous padding around the hero section (48px on desktop) signals importance
+- **Secondary elements in compact format**: Category breakdown uses horizontal bars, not cards, to avoid competing with the hero
+- **Size variation**: Mix of full-width hero, medium cards for chart, and compact list for recent expenses
 
 ### Unique Element
-**Category badges with spending amounts** appear as pill-shaped chips with subtle background colors derived from the teal accent. Instead of boring table rows, each category is a rounded badge showing "Lebensmittel €234.50" with a gentle hover lift effect. This makes the category breakdown feel less like accounting and more like visual organization - similar to tag clouds in note-taking apps. The badges use a 20px border radius (more than typical 8px) to feel distinctly softer.
+The category breakdown uses a distinctive horizontal bar visualization where each category shows both the amount and a proportional bar colored with a muted tint of the primary green. The bars have slightly rounded ends and a subtle inner shadow, giving them a tactile, almost physical quality like paper tabs in a ledger.
 
 ---
 
 ## 3. Theme & Colors
 
 ### Font
-- **Family:** Source Sans 3
-- **URL:** `https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&display=swap`
-- **Why this font:** Source Sans 3 is a professional, readable sans-serif with excellent weight range (300-700). It's distinctive enough to avoid the "generic Inter" look but remains highly legible for numbers and financial data. The thin weight (300) creates beautiful contrast for labels while the bold (700) makes euro amounts commanding.
+- **Family:** Plus Jakarta Sans
+- **URL:** `https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap`
+- **Why this font:** Plus Jakarta Sans has a professional, slightly geometric character that feels modern and trustworthy—perfect for a financial app. Its rounded terminals soften the numbers without losing clarity.
 
 ### Color Palette
 All colors as complete hsl() functions:
 
 | Purpose | Color | CSS Variable |
 |---------|-------|--------------|
-| Page background | `hsl(40 25% 97%)` | `--background` |
-| Main text | `hsl(25 15% 20%)` | `--foreground` |
+| Page background | `hsl(45 30% 97%)` | `--background` |
+| Main text | `hsl(150 20% 15%)` | `--foreground` |
 | Card background | `hsl(0 0% 100%)` | `--card` |
-| Card text | `hsl(25 15% 20%)` | `--card-foreground` |
-| Borders | `hsl(40 15% 88%)` | `--border` |
-| Primary action | `hsl(180 45% 35%)` | `--primary` |
+| Card text | `hsl(150 20% 15%)` | `--card-foreground` |
+| Borders | `hsl(45 15% 88%)` | `--border` |
+| Primary action | `hsl(158 45% 32%)` | `--primary` |
 | Text on primary | `hsl(0 0% 100%)` | `--primary-foreground` |
-| Accent highlight | `hsl(180 40% 92%)` | `--accent` |
-| Muted background | `hsl(40 20% 95%)` | `--muted` |
-| Muted text | `hsl(25 8% 50%)` | `--muted-foreground` |
-| Success/positive | `hsl(145 50% 45%)` | (component use) |
-| Error/negative | `hsl(0 65% 55%)` | `--destructive` |
+| Accent highlight | `hsl(158 35% 92%)` | `--accent` |
+| Muted background | `hsl(45 20% 94%)` | `--muted` |
+| Muted text | `hsl(150 10% 45%)` | `--muted-foreground` |
+| Success/positive | `hsl(158 50% 40%)` | (component use) |
+| Error/negative | `hsl(0 65% 50%)` | `--destructive` |
 
 ### Why These Colors
-The warm cream background (hsl 40 25% 97%) creates a welcoming, paper-like feel - like a ledger or journal, but modern. It's not stark white, which would feel cold for financial data. The deep teal accent (hsl 180 45% 35%) adds professionalism and trust (financial associations) while remaining distinctive - it's not the overused blue of banking apps. The very light teal backgrounds for category badges create subtle visual grouping without overwhelming the page.
+The forest green primary creates a sense of financial stability and growth. The warm cream background (slight yellow undertone) feels welcoming and less clinical than pure white. This combination evokes the feeling of a well-organized leather notebook—professional yet personal.
 
 ### Background Treatment
-The background is a solid warm cream with no gradient or texture. This intentional simplicity lets the content breathe and keeps focus on the numbers. The warmth comes from the slight yellow undertone in the hsl(40...) base, creating a subtle but noticeable difference from pure white.
+The page background uses a warm off-white (`hsl(45 30% 97%)`) with a subtle cream undertone. Cards are pure white, creating a gentle lift from the background without harsh shadows. This layering creates depth while maintaining the light, airy feel.
 
 ---
 
@@ -75,127 +75,114 @@ The background is a solid warm cream with no gradient or texture. This intention
 Design mobile as a COMPLETELY SEPARATE experience, not squeezed desktop.
 
 ### Layout Approach
-Mobile creates dramatic visual hierarchy through size. The hero KPI dominates the entire first viewport (60% of screen height) with massive typography and generous whitespace. Secondary elements are intentionally compact and tightly grouped below, creating a clear "primary vs supporting" visual relationship. The layout flows vertically with distinct sections separated by whitespace, not borders.
+The hero dominates the first viewport, taking approximately 35% of screen height. Visual interest is created through extreme typography contrast (hero at 44px, secondary at 14px) and the horizontal category bars below that create a rhythmic pattern.
 
 ### What Users See (Top to Bottom)
 
 **Header:**
-App title "Ausgabentracker" in 24px weight 600, left-aligned. Month selector (dropdown) in top-right showing current month. Clean, minimal header with 20px padding.
+- Simple, clean header with app title "Ausgabentracker" in 18px semibold
+- No navigation clutter—this is a single-page dashboard
 
 **Hero Section (The FIRST thing users see):**
-- **What:** Total monthly expenses in euros
-- **Size:** Takes up 60% of first viewport (approximately 400px height on standard phone)
-- **Styling:**
-  - Euro amount in 72px weight 700, deep foreground color
-  - Label "Ausgaben diesen Monat" in 16px weight 300, muted color, positioned above number
-  - Small trend indicator below: "↑ €45.20 vs. letzten Monat" in 14px muted text
-  - Surrounded by 40px vertical padding (top and bottom) for breathing room
-  - No card background - sits directly on cream background
-- **Why:** Users open the app to answer "how much have I spent?" - this massive number answers immediately
+- **What:** Monthly spending total displayed as currency
+- **Size:** 44px font weight 700, centered, takes ~35% of first viewport
+- **Label:** "Diesen Monat" (This month) in 14px muted text above the number
+- **Styling:** The number itself is in the dark foreground color with a subtle text shadow for depth
+- **Supporting:** Current month name displayed below in muted text (e.g., "Januar 2026")
+- **Why hero:** This directly answers the user's primary question: "How much have I spent?"
 
-**Section 2: Schnellstatistiken (Compact inline stats)**
-- Horizontal row with 3 mini-stats (no cards, just inline text):
-  - Anzahl Ausgaben: "23 Einträge"
-  - Durchschnitt: "€42.30"
-  - Höchste: "€156.00"
-- Each stat: label in 12px weight 400 muted, value in 18px weight 600
-- 8px gap between stats, 24px top margin from hero
-- Creates density contrast with spacious hero above
+**Section 2: Kategorien-Übersicht (Category Overview)**
+- Horizontal scroll container with category pills
+- Each pill shows: category name + amount spent (e.g., "Lebensmittel €234")
+- Pills have the muted green background with dark text
+- Compact design: 12px text, 8px padding
+- Why here: Users want to quickly see WHERE money went
 
-**Section 3: Ausgaben nach Kategorie**
-- Title "Nach Kategorie" in 18px weight 600, 32px top margin
-- Category badges stacked vertically with 8px gaps:
-  - Each badge: category name + amount, e.g. "Lebensmittel €234.50"
-  - Pill shape (20px border radius), teal accent background
-  - 14px weight 600 text, 12px vertical padding, 16px horizontal
-  - Takes full width on mobile
-- Shows top 5 categories by spending
+**Section 3: Spending Trend Chart**
+- Simple area chart showing last 7 days of spending
+- Minimal axis labels, clean green fill
+- Height: 160px
+- Shows daily spending pattern at a glance
+- Light grid lines, no heavy borders
 
-**Section 4: Letzte Ausgaben**
-- Title "Letzte Ausgaben" in 18px weight 600, 32px top margin
-- Simple card list (not table):
-  - Each expense card: white background, 12px border radius, 16px padding
-  - Top line: Description (16px weight 600) + Amount (16px weight 700, right-aligned)
-  - Bottom line: Category badge (small pill) + Date (14px muted)
-  - 12px gap between cards
-- Shows last 8 expenses
+**Section 4: Letzte Ausgaben (Recent Expenses)**
+- Simple list, last 5 expenses
+- Each row: Description (left), Amount (right), Date below description in muted
+- Minimal dividers (1px border-bottom)
+- Tap to expand and show category/notes if available
 
 **Bottom Navigation / Action:**
-- Fixed bottom button: "Neue Ausgabe erfassen"
-- Full-width, 56px height (thumb-friendly)
-- Primary teal color, white text, 16px weight 600
-- Positioned 20px from screen bottom (thumb zone)
-- Subtle shadow: `0 -2px 10px hsl(0 0% 0% / 0.1)`
+- Fixed bottom button: "Ausgabe hinzufügen" (Add Expense)
+- Full width minus 16px padding on each side
+- 56px height for comfortable thumb tap
+- Primary green background, white text, rounded-lg
 
 ### Mobile-Specific Adaptations
-- Category badges stack vertically (not horizontal wrap) for easier tapping
-- Recent expenses use cards instead of table rows
-- Chart (if added later) would be simplified to show only last 7 days
-- All content flows single-column, no side-by-side elements
-- Nothing is hidden - all functionality available on mobile
+- Category overview becomes horizontal scroll instead of vertical bars
+- Chart simplified to area chart without detailed labels
+- Recent expenses as compact list instead of cards
+- All content accessible through scrolling, nothing hidden
 
 ### Touch Targets
-- Category badges: minimum 44px height with full-width tap area
-- Month selector: minimum 44px tap target
-- Expense cards: full card tappable (minimum 60px height)
-- Primary action button: 56px height, full width (easy thumb reach)
+- Bottom action button: 56px height (exceeds 44px minimum)
+- Category pills: 44px touch target height
+- List items: 56px minimum height per row
 
 ### Interactive Elements
-- **Expense cards**: Tap to open detail sheet showing full description, notes, category, date, and receipt image (if available)
-- **Category badges**: Tap to filter expenses by that category
-- **Month selector**: Tap to open month picker
+- Tapping a recent expense row reveals full details (category, notes, receipt link)
+- Category pills can be tapped to filter (future enhancement, visually indicated with subtle feedback)
 
 ---
 
 ## 5. Desktop Layout
 
 ### Overall Structure
-**Unequal two-column layout (2/3 left, 1/3 right)** with generous whitespace. The left column contains the hero KPI and trend chart (stacked vertically), creating a clear "big picture" area. The right sidebar contains category breakdown and recent expenses - the "details" column. The asymmetry creates visual flow: eye starts at large hero (top-left), flows down through chart, then right to categories and recent items.
+Asymmetric two-column layout:
+- **Left column (65%):** Hero spending total + spending chart
+- **Right column (35%):** Category breakdown + recent expenses
+- Maximum content width: 1200px, centered with auto margins
+- Gap between columns: 32px
 
-Maximum width: 1400px, centered. 40px horizontal padding.
-
-Visual interest comes from the dramatic width difference between columns (not 50/50 split) and the mix of large (hero) and compact (sidebar) elements.
+Eye flow: Hero total (top-left) → Chart (below hero) → Categories (top-right) → Recent (bottom-right)
 
 ### Section Layout
 
-**Top area (full-width header):**
-- App title on left, month selector on right
-- 80px height, 32px vertical padding
+**Top Area (Left Column - Hero):**
+- Monthly total at 56px, positioned with 48px top padding
+- "Diesen Monat" label above in 14px uppercase tracking-wide muted
+- Month name below in 16px muted
+- Entire hero section has 48px bottom padding before chart
 
-**Main content area (2/3 width, left column):**
-- Hero KPI: Same treatment as mobile but with horizontal layout
-  - Label on left, number on right, trend below
-  - 200px height with 48px padding
-  - No background (sits on cream)
-- Spending trend chart below hero (32px gap):
-  - White card background, 16px border radius
-  - 400px height
-  - 24px padding
-  - Line chart showing daily spending for current month
+**Main Content (Left Column - Chart):**
+- Card containing area chart
+- Title: "Ausgaben der letzten 30 Tage"
+- Chart height: 280px
+- Shows spending over time with smooth area fill
+- Hover shows exact amount for each day
 
-**Supporting area (1/3 width, right sidebar):**
-- "Nach Kategorie" section at top:
-  - Category badges in 2-column grid (not stacked)
-  - 12px gap between badges
-  - Each badge sized to content (not full-width)
-- "Letzte Ausgaben" below (24px gap):
-  - Compact list (not cards)
-  - Simple rows with description + amount
-  - 8px vertical padding per row
-  - Shows last 10 items
+**Right Column - Top (Categories):**
+- Card with title "Nach Kategorie"
+- Horizontal bar chart style list
+- Each category: name on left, amount on right, proportional bar behind
+- Bars use primary color at 15% opacity
+- Sorted by amount descending
+- Shows all categories
 
-**Column gap:** 32px between left and right columns
+**Right Column - Bottom (Recent):**
+- Card with title "Letzte Ausgaben"
+- Table-style list, last 10 expenses
+- Columns: Datum | Beschreibung | Kategorie | Betrag
+- Subtle row hover effect
+- Amounts right-aligned, formatted as currency
 
 ### What Appears on Hover
-- **Category badges**: Slight lift effect (`translateY(-2px)`) and shadow increase
-- **Expense rows**: Background changes to muted color, cursor becomes pointer
-- **Primary action button**: Background darkens slightly
-- **Month selector**: Background changes to accent color
+- Chart: Tooltip with exact date and amount
+- Category bars: Full amount with percentage of total
+- Recent expense rows: Subtle background highlight, shows notes if available
 
 ### Clickable/Interactive Areas
-- **Expense rows**: Click to open modal with full expense details (description, notes, category, date, receipt image preview)
-- **Category badges**: Click to filter view to show only expenses in that category
-- **Chart data points**: Hover shows exact daily total in tooltip
+- Category bars: Click to filter recent expenses by category (visual feedback on click)
+- Recent expense rows: Click to view full details in a slide-over panel
 
 ---
 
@@ -204,122 +191,87 @@ Visual interest comes from the dramatic width difference between columns (not 50
 ### Hero KPI
 The MOST important metric that users see first.
 
-- **Title:** "Ausgaben diesen Monat"
-- **Data source:** `ausgaben` app
-- **Calculation:** Sum of all `betrag` (amount) fields where `datum` (date) falls within selected month
-- **Display:**
-  - Mobile: 72px bold euro amount centered with label above
-  - Desktop: Horizontal layout with label on left, number on right
-  - Format: "€1,234.56" with German number formatting
-- **Context shown:**
-  - Trend vs previous month: "↑ €45.20 vs. letzten Monat" (positive = red, negative = green)
-  - Count: Small text showing "aus 23 Ausgaben"
-- **Why this is the hero:** Users open the app specifically to check how much they've spent. This answers the primary question immediately.
+- **Title:** Gesamtausgaben diesen Monat
+- **Data source:** Ausgaben app, filtered by current month
+- **Calculation:** Sum of all `betrag` fields where `datum` is in current month
+- **Display:** Large currency format (e.g., "€ 1.234,56") with German locale formatting
+- **Context shown:** Current month name displayed below (e.g., "Januar 2026")
+- **Why this is the hero:** Directly answers "How much have I spent this month?"—the #1 user question
 
 ### Secondary KPIs
+**Ausgaben heute (Today's Spending)**
+- Source: Ausgaben app
+- Calculation: Sum of betrag where datum = today
+- Format: Currency (€)
+- Display: Inline text in hero section, smaller (20px), muted
 
-**Anzahl Ausgaben (Number of Expenses)**
-- Source: `ausgaben` app
-- Calculation: Count of records where `datum` is in selected month
-- Format: "23 Einträge"
-- Display: Inline stat (mobile), small card (desktop)
-
-**Durchschnittsausgabe (Average Expense)**
-- Source: `ausgaben` app
-- Calculation: Sum of `betrag` / count of records for selected month
-- Format: "€42.30"
-- Display: Inline stat (mobile), small card (desktop)
-
-**Höchste Ausgabe (Highest Expense)**
-- Source: `ausgaben` app
-- Calculation: Maximum `betrag` value for selected month
-- Format: "€156.00"
-- Display: Inline stat (mobile), small card (desktop)
+**Anzahl Transaktionen (Transaction Count)**
+- Source: Ausgaben app
+- Calculation: Count of records this month
+- Format: Number
+- Display: Small badge next to month name (e.g., "23 Ausgaben")
 
 ### Chart
-
-- **Type:** Line chart - shows spending trend over time, helps users see daily patterns and spikes
-- **Title:** "Ausgabenverlauf"
-- **What question it answers:** "When did I spend the most? Are there patterns in my daily spending?"
-- **Data source:** `ausgaben` app
-- **X-axis:** `datum` field, grouped by day, format "1. Jan"
-- **Y-axis:** Sum of `betrag` per day, format "€1,234"
-- **Styling:** Smooth line with teal stroke (--primary), subtle area fill (teal at 10% opacity), dot markers on hover
-- **Mobile simplification:** Show last 7 days only, smaller height (250px vs 400px), hide grid lines
+- **Type:** Area chart (smooth line with filled area below) - WHY: Shows spending flow over time, softer than bars for daily data
+- **Title:** Ausgaben der letzten 30 Tage
+- **What question it answers:** "What's my spending pattern?" - helps users see if they're spending steadily or in bursts
+- **Data source:** Ausgaben app
+- **X-axis:** datum (Date), displayed as "DD.MM" format
+- **Y-axis:** betrag (Amount), displayed as "€X"
+- **Mobile simplification:** Show last 7 days only, simplified axis labels
 
 ### Lists/Tables
 
-**Ausgaben nach Kategorie (Category Breakdown)**
-- Purpose: Users need to see which categories consume most budget
-- Source: `ausgaben` app, join with `kategorien` via `kategorie` applookup field
-- Calculation: Group expenses by category, sum `betrag` for each
-- Fields shown: Category name (from `kategorien.kategoriename`) + total amount
-- Mobile style: Stacked pill badges, full-width
-- Desktop style: 2-column grid of pill badges
+**Kategorien-Übersicht**
+- Purpose: Shows spending breakdown by category
+- Source: Ausgaben app joined with Kategorien
+- Fields shown: kategoriename, sum of betrag per category
+- Mobile style: Horizontal scroll pills
+- Desktop style: Horizontal bar chart list in card
 - Sort: By total amount descending
-- Limit: Top 8 categories
+- Limit: All categories
 
-**Letzte Ausgaben (Recent Expenses)**
-- Purpose: Quick access to recent transactions for review or editing
-- Source: `ausgaben` app
-- Fields shown:
-  - `beschreibung` (description)
-  - `betrag` (amount)
-  - `kategorie` (category name from lookup)
-  - `datum` (date, format "15. Jan")
-- Mobile style: Card list with description + amount on top line, category badge + date on bottom
-- Desktop style: Compact rows (description left, amount right, category + date below in muted text)
-- Sort: By `datum` descending (newest first)
-- Limit: Last 8 (mobile), last 10 (desktop)
+**Letzte Ausgaben**
+- Purpose: Quick access to recent transactions
+- Source: Ausgaben app
+- Fields shown: datum, beschreibung, kategorie (resolved name), betrag
+- Mobile style: Simple compact list
+- Desktop style: Table with subtle styling
+- Sort: By datum descending
+- Limit: 5 on mobile, 10 on desktop
 
 ### Primary Action Button (REQUIRED!)
 
-- **Label:** "Neue Ausgabe erfassen"
-- **Action:** add_record (opens form modal/sheet)
-- **Target app:** `ausgabe_erfassen` app (696f8229befaff34971e38ed)
-- **What data:** Form contains:
-  - `kategorie_auswahl` (category dropdown - applookup to kategorien)
-  - `beschreibung_ausgabe` (text input)
-  - `betrag_ausgabe` (number input with € prefix)
-  - `datum_ausgabe` (date picker, default to today)
-  - `beleg_upload` (optional file upload)
-  - `notizen_ausgabe` (optional textarea)
-- **Mobile position:** bottom_fixed (56px height, 20px from bottom, full-width)
-- **Desktop position:** header (top-right corner, next to month selector)
-- **Why this action:** Users log expenses multiple times per day - it's the primary interaction. Making it one-tap accessible removes friction from habit-building.
+- **Label:** "Ausgabe hinzufügen"
+- **Action:** add_record
+- **Target app:** Ausgaben (696f8228ac959abad478a05a)
+- **What data:** Form with fields:
+  - betrag (number input, required) - "Betrag (€)"
+  - beschreibung (text input, required) - "Beschreibung"
+  - kategorie (select from Kategorien) - "Kategorie"
+  - datum (date picker, default today) - "Datum"
+  - notizen (textarea, optional) - "Notizen"
+- **Mobile position:** bottom_fixed (floating at bottom, always visible)
+- **Desktop position:** header (top right of dashboard, next to title)
+- **Why this action:** Adding expenses is the core interaction—users open the app specifically to log spending. One-tap access is essential.
 
 ---
 
 ## 7. Visual Details
 
 ### Border Radius
-- Cards: 12px (modern but not too rounded)
-- Category badges: 20px (distinctly pill-shaped)
-- Buttons: 8px (slightly rounded)
-- Input fields: 6px (subtle)
+Rounded (8px) - `--radius: 0.5rem` - Soft but not playful, appropriate for financial app
 
 ### Shadows
-- Cards: Subtle - `0 1px 3px hsl(0 0% 0% / 0.08)`
-- Hover cards: Elevated - `0 4px 12px hsl(0 0% 0% / 0.12)`
-- Bottom action button: `0 -2px 10px hsl(0 0% 0% / 0.1)` (upward shadow)
-- No shadows on hero KPI (sits flat on background)
+Subtle - Cards have `shadow-sm` (0 1px 2px rgba(0,0,0,0.05)). No heavy shadows. Elevation comes from background color contrast.
 
 ### Spacing
-- Section vertical gaps: 32px (spacious)
-- Card internal padding: 24px (desktop), 16px (mobile)
-- Inline stats gap: 8px (compact)
-- Category badges gap: 8px (compact)
-- Expense list gap: 12px
+Normal - 16px base unit. Cards have 24px internal padding. Sections separated by 24px. Hero has extra breathing room (48px vertical padding).
 
 ### Animations
-- **Page load:** Stagger - Hero fades in first (0ms), then secondary stats (100ms delay), then categories (200ms), then recent list (300ms)
-- **Hover effects:**
-  - Category badges: `transform: translateY(-2px)` with 200ms ease
-  - Buttons: Background color transition 150ms
-  - Expense rows: Background color transition 150ms
-- **Tap feedback:**
-  - Buttons: Scale down to 0.98 on active state
-  - Cards: Subtle background darken on tap
+- **Page load:** Subtle fade-in (200ms) for content sections, staggered
+- **Hover effects:** Cards lift slightly (translateY -2px), category bars brighten
+- **Tap feedback:** Scale down to 0.98 on tap, spring back
 
 ---
 
@@ -329,25 +281,30 @@ The implementer MUST copy these values exactly into `src/index.css`:
 
 ```css
 :root {
-  --background: hsl(40 25% 97%);
-  --foreground: hsl(25 15% 20%);
+  --radius: 0.5rem;
+  --background: hsl(45 30% 97%);
+  --foreground: hsl(150 20% 15%);
   --card: hsl(0 0% 100%);
-  --card-foreground: hsl(25 15% 20%);
+  --card-foreground: hsl(150 20% 15%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(25 15% 20%);
-  --primary: hsl(180 45% 35%);
+  --popover-foreground: hsl(150 20% 15%);
+  --primary: hsl(158 45% 32%);
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(40 20% 95%);
-  --secondary-foreground: hsl(25 15% 20%);
-  --muted: hsl(40 20% 95%);
-  --muted-foreground: hsl(25 8% 50%);
-  --accent: hsl(180 40% 92%);
-  --accent-foreground: hsl(25 15% 20%);
-  --destructive: hsl(0 65% 55%);
-  --border: hsl(40 15% 88%);
-  --input: hsl(40 15% 88%);
-  --ring: hsl(180 45% 35%);
-  --radius: 0.75rem;
+  --secondary: hsl(45 20% 94%);
+  --secondary-foreground: hsl(150 20% 20%);
+  --muted: hsl(45 20% 94%);
+  --muted-foreground: hsl(150 10% 45%);
+  --accent: hsl(158 35% 92%);
+  --accent-foreground: hsl(150 20% 15%);
+  --destructive: hsl(0 65% 50%);
+  --border: hsl(45 15% 88%);
+  --input: hsl(45 15% 88%);
+  --ring: hsl(158 45% 32%);
+  --chart-1: hsl(158 45% 32%);
+  --chart-2: hsl(158 35% 45%);
+  --chart-3: hsl(158 25% 55%);
+  --chart-4: hsl(158 20% 65%);
+  --chart-5: hsl(158 15% 75%);
 }
 ```
 
@@ -356,13 +313,14 @@ The implementer MUST copy these values exactly into `src/index.css`:
 ## 9. Implementation Checklist
 
 The implementer should verify:
-- [ ] Font loaded from URL above
+- [ ] Font loaded from URL above (Plus Jakarta Sans)
 - [ ] All CSS variables copied exactly
-- [ ] Mobile layout matches Section 4
-- [ ] Desktop layout matches Section 5
-- [ ] Hero element is prominent as described (72px on mobile, dramatic sizing)
-- [ ] Colors create warm, approachable mood described in Section 2
-- [ ] Category badges use 20px border radius (not default 8px)
-- [ ] Primary action button fixed at bottom on mobile
-- [ ] Month selector functional in header
-- [ ] Interactive elements (expense details, category filtering) work as specified
+- [ ] Mobile layout matches Section 4 (hero dominant, horizontal category scroll, fixed bottom button)
+- [ ] Desktop layout matches Section 5 (65/35 split, asymmetric)
+- [ ] Hero element is prominent as described (44px mobile, 56px desktop)
+- [ ] Colors create the warm, trustworthy mood described in Section 2
+- [ ] Primary action button is prominent and always accessible
+- [ ] Chart uses area style with smooth curves
+- [ ] Category bars have proportional width visualization
+- [ ] Currency formatting uses German locale (€ X.XXX,XX)
+- [ ] Dates formatted as DD.MM.YYYY (German format)

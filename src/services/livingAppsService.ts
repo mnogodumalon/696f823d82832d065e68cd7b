@@ -1,9 +1,6 @@
 // AUTOMATICALLY GENERATED SERVICE
-import { APP_IDS as APP_IDS_IMPORT } from '@/types/app';
+import { APP_IDS } from '@/types/app';
 import type { Kategorien, Ausgaben, AusgabeErfassen } from '@/types/app';
-
-// Re-export APP_IDS
-export const APP_IDS = APP_IDS_IMPORT;
 
 // Base Configuration
 const API_BASE_URL = 'https://my.living-apps.de/rest';

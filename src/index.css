@@ -42,43 +42,38 @@
 }
 
 :root {
-  --radius: 8px;
-  --background: hsl(210 25% 97%);
-  --foreground: hsl(215 15% 25%);
+  --radius: 0.75rem;
+  --background: hsl(40 25% 97%);
+  --foreground: hsl(25 15% 20%);
   --card: hsl(0 0% 100%);
-  --card-foreground: hsl(215 15% 25%);
+  --card-foreground: hsl(25 15% 20%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(215 15% 25%);
-  --primary: hsl(210 60% 55%);
+  --popover-foreground: hsl(25 15% 20%);
+  --primary: hsl(180 45% 35%);
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(210 20% 94%);
-  --secondary-foreground: hsl(215 15% 25%);
-  --muted: hsl(210 20% 94%);
-  --muted-foreground: hsl(215 10% 50%);
-  --accent: hsl(210 60% 55%);
-  --accent-foreground: hsl(0 0% 100%);
-  --destructive: hsl(0 70% 55%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(210 15% 88%);
-  --input: hsl(210 15% 88%);
-  --ring: hsl(210 60% 55%);
-  --chart-1: hsl(210 60% 55%);
-  --chart-2: hsl(145 60% 45%);
-  --chart-3: hsl(220 70% 50%);
-  --chart-4: hsl(280 60% 55%);
-  --chart-5: hsl(40 70% 55%);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-
-  /* Typography */
-  --font-serif: 'Source Serif 4', serif;
-  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  --secondary: hsl(40 20% 95%);
+  --secondary-foreground: hsl(25 15% 20%);
+  --muted: hsl(40 20% 95%);
+  --muted-foreground: hsl(25 8% 50%);
+  --accent: hsl(180 40% 92%);
+  --accent-foreground: hsl(25 15% 20%);
+  --destructive: hsl(0 65% 55%);
+  --border: hsl(40 15% 88%);
+  --input: hsl(40 15% 88%);
+  --ring: hsl(180 45% 35%);
+  --chart-1: hsl(180 45% 35%);
+  --chart-2: hsl(145 50% 45%);
+  --chart-3: hsl(40 75% 60%);
+  --chart-4: hsl(25 85% 65%);
+  --chart-5: hsl(0 65% 55%);
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(25 15% 20%);
+  --sidebar-primary: hsl(180 45% 35%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(180 40% 92%);
+  --sidebar-accent-foreground: hsl(25 15% 20%);
+  --sidebar-border: hsl(40 15% 88%);
+  --sidebar-ring: hsl(180 45% 35%);
 }
 
 .dark {
@@ -121,19 +116,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-sans);
+    font-family: 'Source Sans 3', sans-serif;
   }
-}
-
-/* Hero numbers use serif */
-.hero-number {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: 48px;
-  line-height: 1.1;
-}
-
-/* Hero card gradient background */
-.hero-card {
-  background: linear-gradient(135deg, hsl(210 30% 98%) 0%, hsl(210 30% 95%) 100%);
 }

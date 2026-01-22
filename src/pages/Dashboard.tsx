@@ -15,7 +15,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, startOfDay, isSameDay } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Plus, AlertCircle, Receipt } from 'lucide-react';
+import { Plus, AlertCircle, Receipt, Wallet, TrendingDown, Calendar, ShoppingCart, Coffee, Car, Home, Utensils } from 'lucide-react';
 
 // Currency formatter for German locale
 function formatCurrency(value: number | null | undefined): string {
@@ -67,11 +67,64 @@ function LoadingSkeleton() {
   );
 }
 
-// Empty state component
+// Demo data for preview when no real data exists
+function generateDemoData() {
+  const today = new Date();
+  const demoAusgaben: Ausgaben[] = [];
+  const demoKategorien: Kategorien[] = [
+    { record_id: 'demo-kat-1', createdat: today.toISOString(), updatedat: null, fields: { kategoriename: 'Lebensmittel', beschreibung: 'Einkäufe im Supermarkt' } },
+    { record_id: 'demo-kat-2', createdat: today.toISOString(), updatedat: null, fields: { kategoriename: 'Transport', beschreibung: 'Auto, Bahn, Bus' } },
+    { record_id: 'demo-kat-3', createdat: today.toISOString(), updatedat: null, fields: { kategoriename: 'Restaurant', beschreibung: 'Essen gehen' } },
+    { record_id: 'demo-kat-4', createdat: today.toISOString(), updatedat: null, fields: { kategoriename: 'Haushalt', beschreibung: 'Miete, Strom, etc.' } },
+    { record_id: 'demo-kat-5', createdat: today.toISOString(), updatedat: null, fields: { kategoriename: 'Freizeit', beschreibung: 'Kino, Sport, etc.' } },
+  ];
+
+  const descriptions = [
+    { text: 'Wocheneinkauf REWE', kat: 'demo-kat-1', amount: 87.43 },
+    { text: 'Tankstelle', kat: 'demo-kat-2', amount: 62.50 },
+    { text: 'Pizzeria Roma', kat: 'demo-kat-3', amount: 34.80 },
+    { text: 'Stromrechnung Januar', kat: 'demo-kat-4', amount: 89.00 },
+    { text: 'Edeka Getränke', kat: 'demo-kat-1', amount: 23.45 },
+    { text: 'Bahnticket München', kat: 'demo-kat-2', amount: 49.90 },
+    { text: 'Café Latte', kat: 'demo-kat-5', amount: 4.50 },
+    { text: 'Lidl Einkauf', kat: 'demo-kat-1', amount: 45.67 },
+    { text: 'Kino Tickets', kat: 'demo-kat-5', amount: 28.00 },
+    { text: 'Sushi Restaurant', kat: 'demo-kat-3', amount: 42.30 },
+    { text: 'Parkgebühren', kat: 'demo-kat-2', amount: 8.00 },
+    { text: 'DM Drogerie', kat: 'demo-kat-4', amount: 19.95 },
+    { text: 'Bäcker Frühstück', kat: 'demo-kat-1', amount: 7.80 },
+    { text: 'Netflix Abo', kat: 'demo-kat-5', amount: 12.99 },
+    { text: 'Aldi Wocheneinkauf', kat: 'demo-kat-1', amount: 56.23 },
+  ];
+
+  // Generate expenses for the last 30 days
+  for (let i = 0; i < 25; i++) {
+    const daysAgo = Math.floor(Math.random() * 30);
+    const date = subDays(today, daysAgo);
+    const desc = descriptions[Math.floor(Math.random() * descriptions.length)];
+
+    demoAusgaben.push({
+      record_id: `demo-${i}`,
+      createdat: date.toISOString(),
+      updatedat: null,
+      fields: {
+        datum: format(date, 'yyyy-MM-dd'),
+        beschreibung: desc.text,
+        betrag: desc.amount + (Math.random() * 10 - 5), // Add some variation
+        kategorie: `https://my.living-apps.de/rest/apps/demo/records/${desc.kat}`,
+        notizen: i % 3 === 0 ? 'Mit Karte bezahlt' : undefined,
+      }
+    });
+  }
+
+  return { demoAusgaben, demoKategorien };
+}
+
+// Empty state component - now shows demo preview
 function EmptyState({ onAddExpense }: { onAddExpense: () => void }) {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8 font-['Plus_Jakarta_Sans']">
-      <div className="max-w-[600px] mx-auto text-center py-20">
+      <div className="max-w-[600px] mx-auto text-center py-12">
         <div className="w-20 h-20 rounded-full bg-accent mx-auto mb-6 flex items-center justify-center">
           <Receipt className="w-10 h-10 text-primary" />
         </div>
@@ -275,6 +328,17 @@ function CategoryPill({ name, amount }: { name: string; amount: number }) {
   );
 }
 
+// Get icon for category
+function getCategoryIcon(name: string) {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('lebensmittel') || lowerName.includes('einkauf')) return ShoppingCart;
+  if (lowerName.includes('restaurant') || lowerName.includes('essen')) return Utensils;
+  if (lowerName.includes('transport') || lowerName.includes('auto') || lowerName.includes('tank')) return Car;
+  if (lowerName.includes('haushalt') || lowerName.includes('miete') || lowerName.includes('wohnung')) return Home;
+  if (lowerName.includes('kaffee') || lowerName.includes('café')) return Coffee;
+  return Receipt;
+}
+
 // Category bar for desktop
 function CategoryBar({
   name,
@@ -285,16 +349,20 @@ function CategoryBar({
   amount: number;
   percentage: number;
 }) {
+  const Icon = getCategoryIcon(name);
   return (
-    <div className="relative py-3">
+    <div className="relative py-3 group hover:bg-muted/30 transition-colors rounded-lg -mx-2 px-2">
       {/* Background bar */}
       <div
-        className="absolute inset-y-0 left-0 bg-primary/15 rounded-r"
-        style={{ width: `${Math.max(percentage, 5)}%` }}
+        className="absolute inset-y-0 left-0 bg-primary/15 rounded-lg transition-all group-hover:bg-primary/20"
+        style={{ width: `${Math.max(percentage, 8)}%` }}
       />
       {/* Content */}
       <div className="relative flex justify-between items-center px-3">
-        <span className="font-medium text-sm">{name}</span>
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4 text-primary/70" />
+          <span className="font-medium text-sm">{name}</span>
+        </div>
         <span className="font-semibold text-sm">{formatCurrency(amount)}</span>
       </div>
     </div>
@@ -512,15 +580,42 @@ export default function Dashboard() {
         </header>
 
         {/* Hero Section */}
-        <section className="px-4 py-10 text-center">
+        <section className="px-4 py-8 text-center">
           <p className="text-sm uppercase tracking-wide text-muted-foreground mb-2">Diesen Monat</p>
           <p className="text-[44px] font-bold leading-tight">{formatCurrency(currentMonthStats.total)}</p>
           <p className="text-muted-foreground mt-1">{currentMonth} &middot; {currentMonthStats.count} Ausgaben</p>
-          {todayTotal > 0 && (
-            <p className="text-lg text-muted-foreground mt-4">
-              Heute: {formatCurrency(todayTotal)}
-            </p>
-          )}
+        </section>
+
+        {/* Quick Stats Row */}
+        <section className="px-4 mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="bg-accent/50 border-0">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Heute</p>
+                    <p className="text-lg font-semibold">{formatCurrency(todayTotal)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-accent/50 border-0">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <TrendingDown className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Durchschnitt/Tag</p>
+                    <p className="text-lg font-semibold">{formatCurrency(currentMonthStats.total / Math.max(new Date().getDate(), 1))}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         {/* Category Pills - Horizontal Scroll */}
@@ -644,15 +739,55 @@ export default function Dashboard() {
             {/* Left Column */}
             <div>
               {/* Hero Section */}
-              <section className="py-12 mb-8">
+              <section className="py-8 mb-6">
                 <p className="text-sm uppercase tracking-widest text-muted-foreground mb-3">Diesen Monat</p>
-                <p className="text-[56px] font-bold leading-none mb-2">{formatCurrency(currentMonthStats.total)}</p>
-                <p className="text-muted-foreground">
+                <p className="text-[56px] font-bold leading-none mb-4">{formatCurrency(currentMonthStats.total)}</p>
+                <p className="text-muted-foreground mb-6">
                   {currentMonth} &middot; {currentMonthStats.count} Ausgaben
-                  {todayTotal > 0 && (
-                    <span className="ml-4">Heute: {formatCurrency(todayTotal)}</span>
-                  )}
                 </p>
+
+                {/* Quick Stats Row */}
+                <div className="grid grid-cols-3 gap-4">
+                  <Card className="bg-accent/50 border-0">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Calendar className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Heute</p>
+                          <p className="text-lg font-semibold">{formatCurrency(todayTotal)}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-accent/50 border-0">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <TrendingDown className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Durchschnitt/Tag</p>
+                          <p className="text-lg font-semibold">{formatCurrency(currentMonthStats.total / Math.max(new Date().getDate(), 1))}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-accent/50 border-0">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Wallet className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Transaktionen</p>
+                          <p className="text-lg font-semibold">{currentMonthStats.count}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </section>
 
               {/* Chart */}

@@ -3,7 +3,7 @@ import { APP_IDS } from '@/types/app';
 import type { Kategorien, Ausgaben, AusgabeErfassen } from '@/types/app';
 
 // Base Configuration
-const API_BASE_URL = 'https://my.living-apps.de/rest';
+const API_BASE_URL = '/api/rest';  // Uses Vite proxy to avoid CORS
 
 // --- HELPER FUNCTIONS ---
 export function extractRecordId(url: string | null | undefined): string | null {

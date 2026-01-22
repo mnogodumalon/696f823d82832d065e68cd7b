@@ -1,0 +1,17 @@
+[
+  {
+    "content": "Create design_brief.md for Ausgabentracker dashboard",
+    "status": "completed",
+    "activeForm": "Creating design_brief.md for Ausgabentracker dashboard"
+  },
+  {
+    "content": "Implement Dashboard.tsx following design_brief.md",
+    "status": "completed",
+    "activeForm": "Implementing Dashboard.tsx"
+  },
+  {
+    "content": "Build and deploy to GitHub",
+    "status": "in_progress",
+    "activeForm": "Building and deploying to GitHub"
+  }
+]

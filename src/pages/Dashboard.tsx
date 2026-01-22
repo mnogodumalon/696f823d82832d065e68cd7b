@@ -644,8 +644,8 @@ export default function Dashboard() {
                   <AreaChart data={chartDataMobile}>
                     <defs>
                       <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(158 45% 32%)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(158 45% 32%)" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="hsl(217 91% 60%)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(217 91% 60%)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <XAxis
@@ -653,14 +653,14 @@ export default function Dashboard() {
                       tick={{ fontSize: 11 }}
                       tickLine={false}
                       axisLine={false}
-                      stroke="hsl(150 10% 45%)"
+                      stroke="hsl(215 20% 45%)"
                     />
                     <YAxis
                       tick={{ fontSize: 11 }}
                       tickLine={false}
                       axisLine={false}
                       tickFormatter={(v) => `€${v}`}
-                      stroke="hsl(150 10% 45%)"
+                      stroke="hsl(215 20% 45%)"
                       width={45}
                     />
                     <Tooltip
@@ -676,7 +676,7 @@ export default function Dashboard() {
                     <Area
                       type="monotone"
                       dataKey="amount"
-                      stroke="hsl(158 45% 32%)"
+                      stroke="hsl(217 91% 60%)"
                       strokeWidth={2}
                       fill="url(#colorAmount)"
                     />
@@ -801,8 +801,8 @@ export default function Dashboard() {
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient id="colorAmountDesktop" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(158 45% 32%)" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="hsl(158 45% 32%)" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="hsl(217 91% 60%)" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="hsl(217 91% 60%)" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
                         <XAxis
@@ -810,7 +810,7 @@ export default function Dashboard() {
                           tick={{ fontSize: 12 }}
                           tickLine={false}
                           axisLine={false}
-                          stroke="hsl(150 10% 45%)"
+                          stroke="hsl(215 20% 45%)"
                           interval="preserveStartEnd"
                         />
                         <YAxis
@@ -818,7 +818,7 @@ export default function Dashboard() {
                           tickLine={false}
                           axisLine={false}
                           tickFormatter={(v) => `€${v}`}
-                          stroke="hsl(150 10% 45%)"
+                          stroke="hsl(215 20% 45%)"
                           width={50}
                         />
                         <Tooltip
@@ -834,7 +834,7 @@ export default function Dashboard() {
                         <Area
                           type="monotone"
                           dataKey="amount"
-                          stroke="hsl(158 45% 32%)"
+                          stroke="hsl(217 91% 60%)"
                           strokeWidth={2}
                           fill="url(#colorAmountDesktop)"
                         />

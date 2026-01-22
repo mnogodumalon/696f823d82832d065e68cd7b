@@ -264,7 +264,7 @@ export default function Dashboard() {
                     <Badge
                       key={idx}
                       variant="secondary"
-                      className="justify-between py-3 px-4 text-sm font-semibold rounded-[20px] bg-accent hover:bg-accent/80 cursor-pointer transition-all hover:-translate-y-0.5"
+                      className="justify-between py-3 px-4 text-sm font-semibold rounded-[20px] bg-blue-100 hover:bg-blue-200 cursor-pointer transition-all hover:-translate-y-0.5"
                     >
                       <span>{cat.name}</span>
                       <span>{formatCurrency(cat.total)}</span>
@@ -411,7 +411,7 @@ export default function Dashboard() {
                         {categoryBreakdown.map((cat, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between py-3 px-4 rounded-[20px] bg-accent hover:bg-accent/80 cursor-pointer transition-all hover:-translate-y-0.5"
+                            className="flex items-center justify-between py-3 px-4 rounded-[20px] bg-blue-100 hover:bg-blue-200 cursor-pointer transition-all hover:-translate-y-0.5"
                           >
                             <span className="text-sm font-semibold">{cat.name}</span>
                             <span className="text-sm font-bold">{formatCurrency(cat.total)}</span>
@@ -490,7 +490,7 @@ function ExpenseCard({ ausgabe, kategorieMap }: { ausgabe: Ausgaben; kategorieMa
             </div>
             <div className="mt-2 flex items-center gap-2">
               {kategorie && (
-                <Badge variant="secondary" className="text-xs px-3 py-1 rounded-full bg-accent">
+                <Badge variant="secondary" className="text-xs px-3 py-1 rounded-full bg-blue-100">
                   {kategorie.fields.kategoriename}
                 </Badge>
               )}

@@ -7,18 +7,15 @@ const LIVING_APPS_URL = 'https://my.living-apps.de/rest';
 
 // Detect environment: Use Vite proxy in dev, direct URL in production
 function getApiBaseUrl(): string {
-  // In development (Vite dev server), use proxy to avoid CORS
   if (import.meta.env.DEV) {
-    return '/api/rest';
+    return '/api/rest';  // Vite proxy - no CORS issues
   }
-  // In production (GitHub Pages), user is logged into living-apps.de
-  return LIVING_APPS_URL;
+  return LIVING_APPS_URL;  // Production - user is logged in
 }
 
 // --- HELPER FUNCTIONS ---
 export function extractRecordId(url: string | null | undefined): string | null {
   if (!url) return null;
-  // Extrahiere die letzten 24 Hex-Zeichen mit Regex
   const match = url.match(/([a-f0-9]{24})$/i);
   return match ? match[1] : null;
 }
@@ -32,11 +29,10 @@ async function callApi(method: string, endpoint: string, data?: any) {
   const response = await fetch(`${baseUrl}${endpoint}`, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',  // Nutze Session Cookies für Auth
+    credentials: 'include',
     body: data ? JSON.stringify(data) : undefined
   });
   if (!response.ok) throw new Error(await response.text());
-  // DELETE returns often empty body or simple status
   if (method === 'DELETE') return true;
   return response.json();
 }
@@ -104,5 +100,4 @@ export class LivingAppsService {
   static async deleteAusgabeErfassenEntry(id: string) {
     return callApi('DELETE', `/apps/${APP_IDS.AUSGABE_ERFASSEN}/records/${id}`);
   }
-
 }

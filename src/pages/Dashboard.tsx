@@ -285,145 +285,181 @@ export default function Dashboard() {
             </div>
 
             {/* Desktop Layout */}
-            <div className="hidden lg:grid lg:grid-cols-3 lg:gap-8">
-              {/* Left Column (2/3) */}
-              <div className="col-span-2 space-y-8">
-                {/* Hero KPI */}
-                <div className="py-12">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <div className="text-base font-light text-muted-foreground mb-2">
-                        Ausgaben diesen Monat
-                      </div>
-                      <div className="text-6xl font-bold text-foreground">
-                        {formatCurrency(kpis.total)}
-                      </div>
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        aus {kpis.count} Ausgaben
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm pb-2">
-                      {kpis.diff > 0 ? (
-                        <>
-                          <TrendingUp className="h-4 w-4 text-destructive" />
-                          <span className="text-muted-foreground">
-                            {formatCurrency(Math.abs(kpis.diff))} vs. letzten Monat
-                          </span>
-                        </>
-                      ) : kpis.diff < 0 ? (
-                        <>
-                          <TrendingDown className="h-4 w-4 text-green-600" />
-                          <span className="text-muted-foreground">
-                            {formatCurrency(Math.abs(kpis.diff))} vs. letzten Monat
-                          </span>
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trend Chart */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Ausgabenverlauf</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData}>
-                          <defs>
-                            <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.1} />
-                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis
-                            dataKey="date"
-                            tickFormatter={(date) => format(parseISO(date), 'd. MMM', { locale: de })}
-                            tick={{ fontSize: 12 }}
-                            stroke="hsl(var(--muted-foreground))"
-                          />
-                          <YAxis
-                            tickFormatter={(value) => `€${value}`}
-                            tick={{ fontSize: 12 }}
-                            stroke="hsl(var(--muted-foreground))"
-                          />
-                          <Tooltip
-                            formatter={(value: number) => formatCurrency(value)}
-                            labelFormatter={(date) => format(parseISO(date as string), 'PPP', { locale: de })}
-                            contentStyle={{
-                              backgroundColor: 'hsl(var(--background))',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px',
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="total"
-                            stroke="hsl(var(--primary))"
-                            strokeWidth={2}
-                            fill="url(#colorTotal)"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Right Sidebar (1/3) */}
-              <div className="space-y-6">
-                {/* Categories */}
-                <div>
-                  <h2 className="text-lg font-semibold mb-4">Nach Kategorie</h2>
-                  <div className="grid grid-cols-2 gap-3">
-                    {categoryBreakdown.map((cat, idx) => (
-                      <Badge
-                        key={idx}
-                        variant="secondary"
-                        className="flex flex-col items-start gap-1 py-3 px-4 text-sm font-semibold rounded-[20px] bg-accent hover:bg-accent/80 cursor-pointer transition-all hover:-translate-y-0.5"
-                      >
-                        <span className="text-xs font-normal text-muted-foreground">{cat.name}</span>
-                        <span className="text-sm font-bold">{formatCurrency(cat.total)}</span>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Recent Expenses */}
-                <div>
-                  <h2 className="text-lg font-semibold mb-4">Letzte Ausgaben</h2>
-                  <div className="space-y-2">
-                    {recentAusgaben.slice(0, 10).map(ausgabe => {
-                      const kategorieId = extractRecordId(ausgabe.fields.kategorie);
-                      const kategorie = kategorieId ? kategorieMap.get(kategorieId) : null;
-                      return (
-                        <div
-                          key={ausgabe.record_id}
-                          className="flex items-start justify-between py-2 hover:bg-muted rounded-lg px-2 cursor-pointer transition-colors"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold truncate">
-                              {ausgabe.fields.beschreibung || 'Keine Beschreibung'}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                              {kategorie && (
-                                <Badge variant="outline" className="text-xs px-2 py-0 rounded-full">
-                                  {kategorie.fields.kategoriename}
-                                </Badge>
-                              )}
-                              {ausgabe.fields.datum && (
-                                <span>{format(parseISO(ausgabe.fields.datum), 'd. MMM', { locale: de })}</span>
-                              )}
-                            </div>
+            <div className="hidden lg:block">
+              <div className="grid grid-cols-3 gap-8">
+                {/* Left Column (2/3) */}
+                <div className="col-span-2 space-y-6">
+                  {/* Hero KPI Card */}
+                  <Card className="shadow-sm">
+                    <CardContent className="p-8">
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <div className="text-sm font-light text-muted-foreground mb-2">
+                            Ausgaben diesen Monat
                           </div>
-                          <div className="text-sm font-bold ml-2">
-                            {formatCurrency(ausgabe.fields.betrag || 0)}
+                          <div className="text-6xl font-bold text-foreground leading-none">
+                            {formatCurrency(kpis.total)}
+                          </div>
+                          <div className="mt-3 text-sm text-muted-foreground">
+                            aus {kpis.count} Ausgaben
                           </div>
                         </div>
-                      );
-                    })}
+                        <div className="flex items-center gap-2 text-sm pb-1">
+                          {kpis.diff > 0 ? (
+                            <>
+                              <TrendingUp className="h-4 w-4 text-destructive" />
+                              <span className="text-muted-foreground">
+                                {formatCurrency(Math.abs(kpis.diff))} vs. letzten Monat
+                              </span>
+                            </>
+                          ) : kpis.diff < 0 ? (
+                            <>
+                              <TrendingDown className="h-4 w-4 text-green-600" />
+                              <span className="text-muted-foreground">
+                                {formatCurrency(Math.abs(kpis.diff))} vs. letzten Monat
+                              </span>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Quick Stats Cards */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <Card className="shadow-sm">
+                      <CardContent className="p-6">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Anzahl Ausgaben</div>
+                        <div className="text-2xl font-bold">{kpis.count}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Einträge</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="shadow-sm">
+                      <CardContent className="p-6">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Durchschnitt</div>
+                        <div className="text-2xl font-bold">{formatCurrency(kpis.avg)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">pro Ausgabe</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="shadow-sm">
+                      <CardContent className="p-6">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Höchste Ausgabe</div>
+                        <div className="text-2xl font-bold">{formatCurrency(kpis.max)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Maximum</div>
+                      </CardContent>
+                    </Card>
                   </div>
+
+                  {/* Trend Chart */}
+                  <Card className="shadow-sm">
+                    <CardHeader>
+                      <CardTitle>Ausgabenverlauf</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={chartData}>
+                            <defs>
+                              <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.1} />
+                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <XAxis
+                              dataKey="date"
+                              tickFormatter={(date) => format(parseISO(date), 'd. MMM', { locale: de })}
+                              tick={{ fontSize: 12 }}
+                              stroke="hsl(var(--muted-foreground))"
+                            />
+                            <YAxis
+                              tickFormatter={(value) => `€${value}`}
+                              tick={{ fontSize: 12 }}
+                              stroke="hsl(var(--muted-foreground))"
+                            />
+                            <Tooltip
+                              formatter={(value: number) => formatCurrency(value)}
+                              labelFormatter={(date) => format(parseISO(date as string), 'PPP', { locale: de })}
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--background))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px',
+                              }}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="total"
+                              stroke="hsl(var(--primary))"
+                              strokeWidth={2}
+                              fill="url(#colorTotal)"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Right Sidebar (1/3) */}
+                <div className="space-y-6">
+                  {/* Categories Card */}
+                  <Card className="shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Nach Kategorie</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {categoryBreakdown.map((cat, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between py-3 px-4 rounded-[20px] bg-accent hover:bg-accent/80 cursor-pointer transition-all hover:-translate-y-0.5"
+                          >
+                            <span className="text-sm font-semibold">{cat.name}</span>
+                            <span className="text-sm font-bold">{formatCurrency(cat.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Recent Expenses Card */}
+                  <Card className="shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Letzte Ausgaben</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1">
+                        {recentAusgaben.slice(0, 10).map(ausgabe => {
+                          const kategorieId = extractRecordId(ausgabe.fields.kategorie);
+                          const kategorie = kategorieId ? kategorieMap.get(kategorieId) : null;
+                          return (
+                            <div
+                              key={ausgabe.record_id}
+                              className="flex items-start justify-between py-3 px-3 hover:bg-muted rounded-lg cursor-pointer transition-colors"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold truncate">
+                                  {ausgabe.fields.beschreibung || 'Keine Beschreibung'}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                                  {kategorie && (
+                                    <Badge variant="outline" className="text-xs px-2 py-0 rounded-full">
+                                      {kategorie.fields.kategoriename}
+                                    </Badge>
+                                  )}
+                                  {ausgabe.fields.datum && (
+                                    <span>{format(parseISO(ausgabe.fields.datum), 'd. MMM', { locale: de })}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-sm font-bold ml-3 whitespace-nowrap">
+                                {formatCurrency(ausgabe.fields.betrag || 0)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </div>

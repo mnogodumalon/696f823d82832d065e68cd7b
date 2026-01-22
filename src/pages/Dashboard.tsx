@@ -2,183 +2,53 @@ import { useState, useEffect, useMemo } from 'react';
 import type { Ausgaben, Kategorien } from '@/types/app';
 import { APP_IDS } from '@/types/app';
 import { LivingAppsService, extractRecordId, createRecordUrl } from '@/services/livingAppsService';
-import { format, parseISO, startOfMonth, endOfMonth, getDaysInMonth, differenceInDays } from 'date-fns';
-import { de } from 'date-fns/locale';
-import { Plus, ChevronDown, Receipt } from 'lucide-react';
-
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
+import { de } from 'date-fns/locale';
+import { Plus, TrendingUp, TrendingDown, AlertCircle, Receipt } from 'lucide-react';
 
-// Helper: Format currency
+// Currency formatter for German locale
 function formatCurrency(value: number | null | undefined): string {
-  if (value == null) return '0,00 €';
+  if (value == null) return '€ 0,00';
   return new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency: 'EUR',
   }).format(value);
 }
 
-// Helper: Get available months for dropdown
-function getAvailableMonths(): { value: string; label: string }[] {
-  const months: { value: string; label: string }[] = [];
-  const now = new Date();
-  for (let i = 0; i < 12; i++) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({
-      value: format(date, 'yyyy-MM'),
-      label: format(date, 'MMMM yyyy', { locale: de }),
-    });
-  }
-  return months;
-}
+// Category bar colors (teal gradient)
+const CATEGORY_COLORS = [
+  'hsl(175 45% 35%)',
+  'hsl(175 40% 45%)',
+  'hsl(175 35% 55%)',
+  'hsl(175 30% 65%)',
+];
 
-// Loading State Component
-function LoadingState() {
-  return (
-    <div className="min-h-screen bg-background p-4 md:p-8 animate-in fade-in duration-300">
-      <div className="max-w-[1200px] mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-9 w-36" />
-        </div>
-        <div className="space-y-8">
-          <Skeleton className="h-48 w-full rounded-lg" />
-          <Skeleton className="h-8 w-48" />
-          <div className="space-y-3">
-            <Skeleton className="h-12 w-full rounded-lg" />
-            <Skeleton className="h-12 w-3/4 rounded-lg" />
-            <Skeleton className="h-12 w-1/2 rounded-lg" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+export default function Dashboard() {
+  const [ausgaben, setAusgaben] = useState<Ausgaben[]>([]);
+  const [kategorien, setKategorien] = useState<Kategorien[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-// Error State Component
-function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
-  return (
-    <div className="min-h-screen bg-background p-4 md:p-8 flex items-center justify-center">
-      <Alert variant="destructive" className="max-w-md">
-        <AlertTitle>Fehler beim Laden</AlertTitle>
-        <AlertDescription className="mt-2">
-          <p className="mb-4">{error.message}</p>
-          <Button variant="outline" onClick={onRetry}>
-            Erneut versuchen
-          </Button>
-        </AlertDescription>
-      </Alert>
-    </div>
-  );
-}
-
-// Empty State Component
-function EmptyState({ onAddExpense }: { onAddExpense: () => void }) {
-  return (
-    <div className="text-center py-16 px-4">
-      <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-accent flex items-center justify-center">
-        <Receipt className="w-8 h-8 text-primary" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">Keine Ausgaben vorhanden</h3>
-      <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-        Starte damit, deine erste Ausgabe zu erfassen und behalte den Überblick über deine Finanzen.
-      </p>
-      <Button onClick={onAddExpense}>
-        <Plus className="w-4 h-4 mr-2" />
-        Erste Ausgabe hinzufügen
-      </Button>
-    </div>
-  );
-}
-
-// Category Bar Component
-interface CategoryData {
-  id: string;
-  name: string;
-  total: number;
-  percentage: number;
-}
-
-function CategoryBar({ category, maxTotal, rank }: { category: CategoryData; maxTotal: number; rank: number }) {
-  const widthPercent = maxTotal > 0 ? (category.total / maxTotal) * 100 : 0;
-  const opacities = [1, 0.7, 0.5, 0.35, 0.25];
-  const opacity = opacities[Math.min(rank, opacities.length - 1)];
-
-  return (
-    <div className="group cursor-pointer transition-all hover:scale-[1.01]">
-      <div className="flex justify-between items-center mb-1.5">
-        <span className="text-sm font-medium">{category.name}</span>
-        <span className="text-sm font-semibold">{formatCurrency(category.total)}</span>
-      </div>
-      <div className="h-8 bg-muted rounded-r-full overflow-hidden relative">
-        <div
-          className="h-full rounded-r-full transition-all duration-500 ease-out flex items-center"
-          style={{
-            width: `${Math.max(widthPercent, 8)}%`,
-            backgroundColor: `hsl(150 25% 40% / ${opacity})`,
-          }}
-        >
-          {widthPercent > 20 && (
-            <span className="text-xs font-medium text-white pl-3">
-              {category.percentage.toFixed(0)}%
-            </span>
-          )}
-        </div>
-        {widthPercent <= 20 && (
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
-            {category.percentage.toFixed(0)}%
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Recent Expense Row Component
-function ExpenseRow({ expense, categoryName }: { expense: Ausgaben; categoryName: string }) {
-  const dateStr = expense.fields.datum
-    ? format(parseISO(expense.fields.datum), 'dd.MM.', { locale: de })
-    : '-';
-
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors cursor-pointer px-2 -mx-2 rounded">
-      <div className="flex items-center gap-4 min-w-0 flex-1">
-        <span className="text-sm text-muted-foreground w-12 shrink-0">{dateStr}</span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium truncate">
-            {expense.fields.beschreibung || 'Ohne Beschreibung'}
-          </p>
-          <p className="text-xs text-muted-foreground">{categoryName}</p>
-        </div>
-      </div>
-      <span className="text-sm font-semibold shrink-0 ml-4">
-        {formatCurrency(expense.fields.betrag)}
-      </span>
-    </div>
-  );
-}
-
-// Add Expense Form Component
-interface AddExpenseFormProps {
-  kategorien: Kategorien[];
-  onSuccess: () => void;
-  onClose: () => void;
-}
-
-function AddExpenseForm({ kategorien, onSuccess, onClose }: AddExpenseFormProps) {
+  // Form state
   const [formData, setFormData] = useState({
     betrag: '',
     beschreibung: '',
@@ -186,133 +56,6 @@ function AddExpenseForm({ kategorien, onSuccess, onClose }: AddExpenseFormProps)
     datum: format(new Date(), 'yyyy-MM-dd'),
     notizen: '',
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!formData.betrag || !formData.beschreibung || !formData.kategorie) {
-      setError('Bitte fülle alle Pflichtfelder aus.');
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      await LivingAppsService.createAusgabenEntry({
-        betrag: parseFloat(formData.betrag.replace(',', '.')),
-        beschreibung: formData.beschreibung,
-        kategorie: createRecordUrl(APP_IDS.KATEGORIEN, formData.kategorie),
-        datum: formData.datum,
-        notizen: formData.notizen || undefined,
-      });
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="betrag">Betrag (EUR) *</Label>
-        <Input
-          id="betrag"
-          type="text"
-          inputMode="decimal"
-          placeholder="0,00"
-          value={formData.betrag}
-          onChange={(e) => setFormData({ ...formData, betrag: e.target.value })}
-          className="text-lg"
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="beschreibung">Beschreibung *</Label>
-        <Input
-          id="beschreibung"
-          type="text"
-          placeholder="z.B. Supermarkt Einkauf"
-          value={formData.beschreibung}
-          onChange={(e) => setFormData({ ...formData, beschreibung: e.target.value })}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="kategorie">Kategorie *</Label>
-        <Select
-          value={formData.kategorie}
-          onValueChange={(value) => setFormData({ ...formData, kategorie: value })}
-        >
-          <SelectTrigger id="kategorie">
-            <SelectValue placeholder="Kategorie wählen..." />
-          </SelectTrigger>
-          <SelectContent>
-            {kategorien.map((kat) => (
-              <SelectItem key={kat.record_id} value={kat.record_id}>
-                {kat.fields.kategoriename || 'Unbenannt'}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="datum">Datum</Label>
-        <Input
-          id="datum"
-          type="date"
-          value={formData.datum}
-          onChange={(e) => setFormData({ ...formData, datum: e.target.value })}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="notizen">Notizen (optional)</Label>
-        <Textarea
-          id="notizen"
-          placeholder="Zusätzliche Informationen..."
-          value={formData.notizen}
-          onChange={(e) => setFormData({ ...formData, notizen: e.target.value })}
-          rows={2}
-        />
-      </div>
-
-      <div className="flex gap-3 pt-2">
-        <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-          Abbrechen
-        </Button>
-        <Button type="submit" disabled={submitting} className="flex-1">
-          {submitting ? 'Speichern...' : 'Speichern'}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-// Main Dashboard Component
-export default function Dashboard() {
-  const [ausgaben, setAusgaben] = useState<Ausgaben[]>([]);
-  const [kategorien, setKategorien] = useState<Kategorien[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const availableMonths = useMemo(() => getAvailableMonths(), []);
 
   // Fetch data
   async function fetchData() {
@@ -326,7 +69,7 @@ export default function Dashboard() {
       setAusgaben(ausgabenData);
       setKategorien(kategorienData);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unbekannter Fehler'));
+      setError(err instanceof Error ? err : new Error('Ein Fehler ist aufgetreten'));
     } finally {
       setLoading(false);
     }
@@ -336,229 +79,378 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  // Create category lookup map
+  // Create kategorie lookup map
   const kategorieMap = useMemo(() => {
     const map = new Map<string, Kategorien>();
-    kategorien.forEach((kat) => map.set(kat.record_id, kat));
+    kategorien.forEach((k) => map.set(k.record_id, k));
     return map;
   }, [kategorien]);
 
-  // Filter expenses by selected month
-  const filteredAusgaben = useMemo(() => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const monthStart = startOfMonth(new Date(year, month - 1));
-    const monthEnd = endOfMonth(new Date(year, month - 1));
+  // Get kategorie name by record ID
+  function getKategorieName(kategorieUrl: string | undefined): string {
+    if (!kategorieUrl) return 'Ohne Kategorie';
+    const id = extractRecordId(kategorieUrl);
+    if (!id) return 'Ohne Kategorie';
+    const kategorie = kategorieMap.get(id);
+    return kategorie?.fields.kategoriename || 'Ohne Kategorie';
+  }
 
+  // Current month calculations
+  const now = new Date();
+  const currentMonthStart = startOfMonth(now);
+  const currentMonthEnd = endOfMonth(now);
+  const lastMonthStart = startOfMonth(subMonths(now, 1));
+  const lastMonthEnd = endOfMonth(subMonths(now, 1));
+
+  // Filter expenses for current month
+  const currentMonthExpenses = useMemo(() => {
     return ausgaben.filter((a) => {
       if (!a.fields.datum) return false;
       const date = parseISO(a.fields.datum);
-      return date >= monthStart && date <= monthEnd;
+      return isWithinInterval(date, { start: currentMonthStart, end: currentMonthEnd });
     });
-  }, [ausgaben, selectedMonth]);
+  }, [ausgaben, currentMonthStart, currentMonthEnd]);
 
-  // Calculate KPIs
-  const monthlyTotal = useMemo(() => {
-    return filteredAusgaben.reduce((sum, a) => sum + (a.fields.betrag || 0), 0);
-  }, [filteredAusgaben]);
+  // Filter expenses for last month
+  const lastMonthExpenses = useMemo(() => {
+    return ausgaben.filter((a) => {
+      if (!a.fields.datum) return false;
+      const date = parseISO(a.fields.datum);
+      return isWithinInterval(date, { start: lastMonthStart, end: lastMonthEnd });
+    });
+  }, [ausgaben, lastMonthStart, lastMonthEnd]);
 
-  const averagePerDay = useMemo(() => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const selectedDate = new Date(year, month - 1);
-    const now = new Date();
+  // Calculate totals
+  const currentMonthTotal = useMemo(() => {
+    return currentMonthExpenses.reduce((sum, a) => sum + (a.fields.betrag || 0), 0);
+  }, [currentMonthExpenses]);
 
-    let daysElapsed: number;
-    if (
-      selectedDate.getFullYear() === now.getFullYear() &&
-      selectedDate.getMonth() === now.getMonth()
-    ) {
-      daysElapsed = differenceInDays(now, startOfMonth(now)) + 1;
-    } else {
-      daysElapsed = getDaysInMonth(selectedDate);
-    }
+  const lastMonthTotal = useMemo(() => {
+    return lastMonthExpenses.reduce((sum, a) => sum + (a.fields.betrag || 0), 0);
+  }, [lastMonthExpenses]);
 
-    return daysElapsed > 0 ? monthlyTotal / daysElapsed : 0;
-  }, [monthlyTotal, selectedMonth]);
+  // Calculate percentage change
+  const percentChange = useMemo(() => {
+    if (lastMonthTotal === 0) return null;
+    return ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100;
+  }, [currentMonthTotal, lastMonthTotal]);
 
-  const transactionCount = filteredAusgaben.length;
+  // Category breakdown
+  const categoryBreakdown = useMemo(() => {
+    const groups = new Map<string, { name: string; total: number }>();
 
-  // Calculate category breakdown
-  const categoryData = useMemo(() => {
-    const totals = new Map<string, number>();
+    currentMonthExpenses.forEach((a) => {
+      const kategorieUrl = a.fields.kategorie;
+      const kategorieId = kategorieUrl ? extractRecordId(kategorieUrl) : 'none';
+      const name = getKategorieName(kategorieUrl);
+      const key = kategorieId || 'none';
 
-    filteredAusgaben.forEach((a) => {
-      const katId = extractRecordId(a.fields.kategorie);
-      if (!katId) return;
-      totals.set(katId, (totals.get(katId) || 0) + (a.fields.betrag || 0));
+      if (!groups.has(key)) {
+        groups.set(key, { name, total: 0 });
+      }
+      const group = groups.get(key)!;
+      group.total += a.fields.betrag || 0;
     });
 
-    const result: CategoryData[] = [];
-    totals.forEach((total, id) => {
-      const kat = kategorieMap.get(id);
-      result.push({
-        id,
-        name: kat?.fields.kategoriename || 'Unbekannt',
-        total,
-        percentage: monthlyTotal > 0 ? (total / monthlyTotal) * 100 : 0,
+    return Array.from(groups.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 4);
+  }, [currentMonthExpenses, kategorieMap]);
+
+  // Daily spending chart data
+  const chartData = useMemo(() => {
+    const dailyTotals = new Map<number, number>();
+
+    currentMonthExpenses.forEach((a) => {
+      if (!a.fields.datum) return;
+      const day = parseISO(a.fields.datum).getDate();
+      dailyTotals.set(day, (dailyTotals.get(day) || 0) + (a.fields.betrag || 0));
+    });
+
+    const daysInMonth = currentMonthEnd.getDate();
+    const data = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      data.push({
+        day: i,
+        betrag: dailyTotals.get(i) || 0,
       });
-    });
+    }
+    return data;
+  }, [currentMonthExpenses, currentMonthEnd]);
 
-    return result.sort((a, b) => b.total - a.total);
-  }, [filteredAusgaben, kategorieMap, monthlyTotal]);
-
-  const maxCategoryTotal = categoryData.length > 0 ? categoryData[0].total : 0;
-
-  // Get recent expenses (sorted by date, newest first)
+  // Recent expenses (sorted by date desc)
   const recentExpenses = useMemo(() => {
-    return [...filteredAusgaben]
+    return [...ausgaben]
       .sort((a, b) => {
         const dateA = a.fields.datum || '';
         const dateB = b.fields.datum || '';
         return dateB.localeCompare(dateA);
       })
-      .slice(0, 10);
-  }, [filteredAusgaben]);
+      .slice(0, 8);
+  }, [ausgaben]);
 
-  // Get category name for expense
-  function getCategoryName(expense: Ausgaben): string {
-    const katId = extractRecordId(expense.fields.kategorie);
-    if (!katId) return 'Ohne Kategorie';
-    const kat = kategorieMap.get(katId);
-    return kat?.fields.kategoriename || 'Unbekannt';
-  }
+  // Handle form submission
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!formData.betrag || !formData.beschreibung) return;
 
-  // Handlers
-  function handleExpenseAdded() {
-    fetchData();
+    setSubmitting(true);
+    try {
+      await LivingAppsService.createAusgabenEntry({
+        betrag: parseFloat(formData.betrag.replace(',', '.')),
+        beschreibung: formData.beschreibung,
+        datum: formData.datum,
+        kategorie: formData.kategorie
+          ? createRecordUrl(APP_IDS.KATEGORIEN, formData.kategorie)
+          : undefined,
+        notizen: formData.notizen || undefined,
+      });
+
+      // Reset form and close dialog
+      setFormData({
+        betrag: '',
+        beschreibung: '',
+        kategorie: '',
+        datum: format(new Date(), 'yyyy-MM-dd'),
+        notizen: '',
+      });
+      setDialogOpen(false);
+
+      // Refresh data
+      await fetchData();
+    } catch (err) {
+      console.error('Fehler beim Speichern:', err);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // Loading state
   if (loading) {
-    return <LoadingState />;
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-8 w-28" />
+          </div>
+          <Skeleton className="h-48 w-full" />
+          <div className="grid md:grid-cols-2 gap-6">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Error state
   if (error) {
-    return <ErrorState error={error} onRetry={fetchData} />;
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-8 flex items-center justify-center" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Fehler</AlertTitle>
+          <AlertDescription className="mt-2">
+            {error.message}
+            <Button variant="outline" size="sm" className="mt-4 w-full" onClick={fetchData}>
+              Erneut versuchen
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
-  // Get selected month label
-  const selectedMonthLabel =
-    availableMonths.find((m) => m.value === selectedMonth)?.label || selectedMonth;
-
   return (
-    <div className="min-h-screen bg-background animate-in fade-in duration-300">
+    <div className="min-h-screen bg-background" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Mobile Layout */}
       <div className="md:hidden">
-        {/* Header */}
-        <header className="px-4 py-4 flex items-center justify-between">
-          <h1 className="text-lg font-medium">Ausgaben</h1>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1">
-                {format(parseISO(selectedMonth + '-01'), 'MMM yyyy', { locale: de })}
-                <ChevronDown className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {availableMonths.map((month) => (
-                <DropdownMenuItem
-                  key={month.value}
-                  onClick={() => setSelectedMonth(month.value)}
-                  className={selectedMonth === month.value ? 'bg-accent' : ''}
-                >
-                  {month.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
+        <div className="p-4 pb-24">
+          {/* Header */}
+          <header className="flex items-center justify-between mb-6">
+            <h1 className="text-lg font-semibold text-foreground">Ausgabentracker</h1>
+            <Badge variant="secondary" className="font-medium">
+              {format(now, 'MMMM yyyy', { locale: de })}
+            </Badge>
+          </header>
 
-        {filteredAusgaben.length === 0 && kategorien.length > 0 ? (
-          <EmptyState onAddExpense={() => setDialogOpen(true)} />
-        ) : (
-          <main className="px-4 pb-24">
-            {/* Hero Section */}
-            <section className="py-12 text-center">
-              <p className="text-sm text-muted-foreground mb-2">Monatliche Ausgaben</p>
-              <p className="text-5xl font-bold tracking-tight mb-2">
-                {formatCurrency(monthlyTotal)}
-              </p>
-              <p className="text-sm text-muted-foreground">im {selectedMonthLabel}</p>
-            </section>
-
-            {/* Quick Stats Row */}
-            <section className="flex items-center justify-center gap-6 py-4 mb-8">
-              <div className="text-center">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Ø {formatCurrency(averagePerDay)} / Tag
-                </p>
+          {/* Hero Section */}
+          <div className="py-8 text-center">
+            <p className="text-sm uppercase tracking-wider text-muted-foreground mb-2">
+              Ausgaben diesen Monat
+            </p>
+            <p className="text-[72px] font-bold leading-none text-foreground tabular-nums">
+              {formatCurrency(currentMonthTotal)}
+            </p>
+            {percentChange !== null && (
+              <div className={`flex items-center justify-center gap-1 mt-3 text-sm ${percentChange > 0 ? 'text-destructive' : 'text-[hsl(160_50%_40%)]'}`}>
+                {percentChange > 0 ? (
+                  <TrendingUp className="h-4 w-4" />
+                ) : (
+                  <TrendingDown className="h-4 w-4" />
+                )}
+                <span>
+                  {percentChange > 0 ? '+' : ''}{percentChange.toFixed(1)}% vs. letzter Monat
+                </span>
               </div>
-              <div className="w-px h-4 bg-border" />
-              <div className="text-center">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {transactionCount} Ausgaben
-                </p>
-              </div>
-            </section>
+            )}
+            <p className="text-sm text-muted-foreground mt-2">
+              {currentMonthExpenses.length} Transaktionen
+            </p>
+          </div>
 
-            {/* Category Breakdown */}
-            {categoryData.length > 0 && (
-              <section className="mb-8">
-                <h2 className="text-base font-semibold mb-4">Nach Kategorie</h2>
-                <div className="space-y-4">
-                  {categoryData.slice(0, 5).map((cat, index) => (
-                    <CategoryBar
-                      key={cat.id}
-                      category={cat}
-                      maxTotal={maxCategoryTotal}
-                      rank={index}
-                    />
+          {/* Category Breakdown */}
+          <Card className="mb-6 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">Nach Kategorie</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {categoryBreakdown.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Noch keine Ausgaben diesen Monat
+                </p>
+              ) : (
+                categoryBreakdown.map((cat, index) => (
+                  <div key={cat.name} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{cat.name}</span>
+                      <span className="text-muted-foreground">{formatCurrency(cat.total)}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${currentMonthTotal > 0 ? (cat.total / currentMonthTotal) * 100 : 0}%`,
+                          backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Expenses */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">Letzte Ausgaben</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recentExpenses.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Noch keine Ausgaben erfasst
+                </p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {recentExpenses.slice(0, 5).map((expense) => (
+                    <div key={expense.record_id} className="py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{expense.fields.beschreibung || 'Ohne Beschreibung'}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs font-normal">
+                              {getKategorieName(expense.fields.kategorie)}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {expense.fields.datum
+                                ? format(parseISO(expense.fields.datum), 'dd.MM.yyyy', { locale: de })
+                                : ''}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="font-semibold text-foreground whitespace-nowrap">
+                          {formatCurrency(expense.fields.betrag)}
+                        </p>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </section>
-            )}
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Recent Expenses */}
-            {recentExpenses.length > 0 && (
-              <section>
-                <h2 className="text-base font-semibold mb-4">Letzte Ausgaben</h2>
-                <Card>
-                  <CardContent className="p-4">
-                    {recentExpenses.slice(0, 5).map((expense) => (
-                      <ExpenseRow
-                        key={expense.record_id}
-                        expense={expense}
-                        categoryName={getCategoryName(expense)}
-                      />
-                    ))}
-                  </CardContent>
-                </Card>
-              </section>
-            )}
-          </main>
-        )}
-
-        {/* Fixed Bottom Button */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
+        {/* Fixed Bottom Action Button */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button
-                className="w-full h-12 text-base shadow-lg"
-                style={{ boxShadow: '0 4px 12px hsl(45 10% 15% / 0.15)' }}
-              >
-                <Plus className="w-5 h-5 mr-2" />
+              <Button className="w-full h-14 text-base font-semibold shadow-lg">
+                <Plus className="h-5 w-5 mr-2" />
                 Ausgabe hinzufügen
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Neue Ausgabe</DialogTitle>
+                <DialogTitle>Neue Ausgabe erfassen</DialogTitle>
               </DialogHeader>
-              <AddExpenseForm
-                kategorien={kategorien}
-                onSuccess={handleExpenseAdded}
-                onClose={() => setDialogOpen(false)}
-              />
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="betrag">Betrag (EUR) *</Label>
+                  <Input
+                    id="betrag"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={formData.betrag}
+                    onChange={(e) => setFormData({ ...formData, betrag: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="beschreibung">Beschreibung *</Label>
+                  <Input
+                    id="beschreibung"
+                    type="text"
+                    placeholder="z.B. Mittagessen"
+                    value={formData.beschreibung}
+                    onChange={(e) => setFormData({ ...formData, beschreibung: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="kategorie">Kategorie</Label>
+                  <Select
+                    value={formData.kategorie || 'none'}
+                    onValueChange={(v) => setFormData({ ...formData, kategorie: v === 'none' ? '' : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kategorie wählen..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Keine Kategorie</SelectItem>
+                      {kategorien.map((k) => (
+                        <SelectItem key={k.record_id} value={k.record_id}>
+                          {k.fields.kategoriename || 'Unbenannt'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="datum">Datum</Label>
+                  <Input
+                    id="datum"
+                    type="date"
+                    value={formData.datum}
+                    onChange={(e) => setFormData({ ...formData, datum: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notizen">Notizen</Label>
+                  <Textarea
+                    id="notizen"
+                    placeholder="Optionale Notizen..."
+                    value={formData.notizen}
+                    onChange={(e) => setFormData({ ...formData, notizen: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? 'Speichern...' : 'Ausgabe speichern'}
+                </Button>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -566,125 +458,281 @@ export default function Dashboard() {
 
       {/* Desktop Layout */}
       <div className="hidden md:block">
-        <div className="max-w-[1200px] mx-auto p-8">
+        <div className="max-w-6xl mx-auto p-8">
           {/* Header */}
-          <header className="flex items-center justify-between mb-8">
-            <h1 className="text-xl font-semibold">Ausgabentracker</h1>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  {selectedMonthLabel}
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {availableMonths.map((month) => (
-                  <DropdownMenuItem
-                    key={month.value}
-                    onClick={() => setSelectedMonth(month.value)}
-                    className={selectedMonth === month.value ? 'bg-accent' : ''}
-                  >
-                    {month.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <header className="flex items-center justify-between mb-8 pb-4 border-b border-border">
+            <h1 className="text-xl font-semibold text-foreground">Ausgabentracker</h1>
+            <Badge variant="secondary" className="font-medium text-sm px-3 py-1">
+              {format(now, 'MMMM yyyy', { locale: de })}
+            </Badge>
           </header>
 
-          {filteredAusgaben.length === 0 && kategorien.length > 0 ? (
-            <EmptyState onAddExpense={() => setDialogOpen(true)} />
-          ) : (
-            <div className="grid grid-cols-[1fr_380px] gap-8">
-              {/* Left Column (65%) */}
-              <div className="space-y-8">
-                {/* Hero Card */}
-                <Card className="p-8">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-3">Monatliche Ausgaben</p>
-                    <p className="text-6xl font-bold tracking-tight mb-3">
-                      {formatCurrency(monthlyTotal)}
-                    </p>
-                    <p className="text-muted-foreground">im {selectedMonthLabel}</p>
-                  </div>
-
-                  {/* Quick Stats */}
-                  <div className="flex items-center justify-center gap-8 mt-8 pt-6 border-t border-border">
-                    <div className="text-center">
-                      <p className="text-2xl font-semibold">{formatCurrency(averagePerDay)}</p>
-                      <p className="text-sm text-muted-foreground">pro Tag</p>
+          {/* Main Grid: 60% Left / 40% Right */}
+          <div className="grid grid-cols-5 gap-8">
+            {/* Left Column (60%) */}
+            <div className="col-span-3 space-y-8">
+              {/* Hero KPI Card */}
+              <Card className="shadow-sm">
+                <CardContent className="py-10 text-center">
+                  <p className="text-sm uppercase tracking-wider text-muted-foreground mb-3">
+                    Ausgaben diesen Monat
+                  </p>
+                  <p className="text-[96px] font-bold leading-none text-foreground tabular-nums">
+                    {formatCurrency(currentMonthTotal)}
+                  </p>
+                  {percentChange !== null && (
+                    <div className={`flex items-center justify-center gap-1.5 mt-4 text-base ${percentChange > 0 ? 'text-destructive' : 'text-[hsl(160_50%_40%)]'}`}>
+                      {percentChange > 0 ? (
+                        <TrendingUp className="h-5 w-5" />
+                      ) : (
+                        <TrendingDown className="h-5 w-5" />
+                      )}
+                      <span className="font-medium">
+                        {percentChange > 0 ? '+' : ''}{percentChange.toFixed(1)}% vs. letzter Monat
+                      </span>
                     </div>
-                    <div className="w-px h-10 bg-border" />
-                    <div className="text-center">
-                      <p className="text-2xl font-semibold">{transactionCount}</p>
-                      <p className="text-sm text-muted-foreground">Ausgaben</p>
-                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {currentMonthExpenses.length} Transaktionen
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Daily Spending Chart */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold">
+                    Tägliche Ausgaben – {format(now, 'MMMM yyyy', { locale: de })}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorBetrag" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(175 45% 35%)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="hsl(175 45% 35%)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis
+                          dataKey="day"
+                          tick={{ fontSize: 12 }}
+                          stroke="hsl(200 10% 50%)"
+                          axisLine={{ stroke: 'hsl(45 15% 88%)' }}
+                          tickLine={false}
+                          tickFormatter={(value) => {
+                            if (value === 1 || value === 5 || value === 10 || value === 15 || value === 20 || value === 25 || value === 30) {
+                              return value.toString();
+                            }
+                            return '';
+                          }}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 12 }}
+                          stroke="hsl(200 10% 50%)"
+                          axisLine={{ stroke: 'hsl(45 15% 88%)' }}
+                          tickLine={false}
+                          tickFormatter={(value) => `€${value}`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(0 0% 100%)',
+                            border: '1px solid hsl(45 15% 88%)',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                          }}
+                          formatter={(value: number) => [formatCurrency(value), 'Ausgaben']}
+                          labelFormatter={(label) => `Tag ${label}`}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="betrag"
+                          stroke="hsl(175 45% 35%)"
+                          strokeWidth={2}
+                          fill="url(#colorBetrag)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
-                </Card>
-
-                {/* Category Breakdown */}
-                {categoryData.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-semibold mb-5">Nach Kategorie</h2>
-                    <Card>
-                      <CardContent className="p-6">
-                        <div className="space-y-5">
-                          {categoryData.map((cat, index) => (
-                            <CategoryBar
-                              key={cat.id}
-                              category={cat}
-                              maxTotal={maxCategoryTotal}
-                              rank={index}
-                            />
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </section>
-                )}
-              </div>
-
-              {/* Right Column (35%) */}
-              <div className="space-y-6">
-                {/* Add Expense Button */}
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full h-12 text-base">
-                      <Plus className="w-5 h-5 mr-2" />
-                      Ausgabe hinzufügen
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Neue Ausgabe</DialogTitle>
-                    </DialogHeader>
-                    <AddExpenseForm
-                      kategorien={kategorien}
-                      onSuccess={handleExpenseAdded}
-                      onClose={() => setDialogOpen(false)}
-                    />
-                  </DialogContent>
-                </Dialog>
-
-                {/* Recent Activity */}
-                {recentExpenses.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-semibold mb-4">Letzte Ausgaben</h2>
-                    <Card>
-                      <CardContent className="p-4">
-                        {recentExpenses.map((expense) => (
-                          <ExpenseRow
-                            key={expense.record_id}
-                            expense={expense}
-                            categoryName={getCategoryName(expense)}
-                          />
-                        ))}
-                      </CardContent>
-                    </Card>
-                  </section>
-                )}
-              </div>
+                </CardContent>
+              </Card>
             </div>
-          )}
+
+            {/* Right Column (40%) */}
+            <div className="col-span-2 space-y-6">
+              {/* Primary Action Button */}
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full h-12 text-base font-semibold shadow-sm">
+                    <Plus className="h-5 w-5 mr-2" />
+                    Ausgabe hinzufügen
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Neue Ausgabe erfassen</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="betrag-desktop">Betrag (EUR) *</Label>
+                      <Input
+                        id="betrag-desktop"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={formData.betrag}
+                        onChange={(e) => setFormData({ ...formData, betrag: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="beschreibung-desktop">Beschreibung *</Label>
+                      <Input
+                        id="beschreibung-desktop"
+                        type="text"
+                        placeholder="z.B. Mittagessen"
+                        value={formData.beschreibung}
+                        onChange={(e) => setFormData({ ...formData, beschreibung: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="kategorie-desktop">Kategorie</Label>
+                      <Select
+                        value={formData.kategorie || 'none'}
+                        onValueChange={(v) => setFormData({ ...formData, kategorie: v === 'none' ? '' : v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Kategorie wählen..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Keine Kategorie</SelectItem>
+                          {kategorien.map((k) => (
+                            <SelectItem key={k.record_id} value={k.record_id}>
+                              {k.fields.kategoriename || 'Unbenannt'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="datum-desktop">Datum</Label>
+                      <Input
+                        id="datum-desktop"
+                        type="date"
+                        value={formData.datum}
+                        onChange={(e) => setFormData({ ...formData, datum: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="notizen-desktop">Notizen</Label>
+                      <Textarea
+                        id="notizen-desktop"
+                        placeholder="Optionale Notizen..."
+                        value={formData.notizen}
+                        onChange={(e) => setFormData({ ...formData, notizen: e.target.value })}
+                        rows={3}
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={submitting}>
+                      {submitting ? 'Speichern...' : 'Ausgabe speichern'}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              {/* Category Breakdown */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold">Nach Kategorie</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {categoryBreakdown.length === 0 ? (
+                    <div className="text-center py-6">
+                      <Receipt className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Noch keine Ausgaben diesen Monat
+                      </p>
+                    </div>
+                  ) : (
+                    categoryBreakdown.map((cat, index) => (
+                      <div key={cat.name} className="space-y-1.5 group">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{cat.name}</span>
+                          <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                            {formatCurrency(cat.total)}
+                            <span className="text-xs ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              ({currentMonthTotal > 0 ? ((cat.total / currentMonthTotal) * 100).toFixed(0) : 0}%)
+                            </span>
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${currentMonthTotal > 0 ? (cat.total / currentMonthTotal) * 100 : 0}%`,
+                              backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Expenses */}
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold">Letzte Ausgaben</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {recentExpenses.length === 0 ? (
+                    <div className="text-center py-6">
+                      <Receipt className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Noch keine Ausgaben erfasst
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Klicke oben auf "Ausgabe hinzufügen"
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {recentExpenses.map((expense) => (
+                        <div
+                          key={expense.record_id}
+                          className="py-3 first:pt-0 last:pb-0 hover:bg-muted/50 -mx-3 px-3 rounded-lg transition-colors cursor-default"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">
+                                {expense.fields.beschreibung || 'Ohne Beschreibung'}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-xs font-normal">
+                                  {getKategorieName(expense.fields.kategorie)}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {expense.fields.datum
+                                    ? format(parseISO(expense.fields.datum), 'dd.MM.yyyy', { locale: de })
+                                    : ''}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="font-semibold text-foreground whitespace-nowrap">
+                              {formatCurrency(expense.fields.betrag)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>

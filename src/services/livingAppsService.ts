@@ -3,7 +3,17 @@ import { APP_IDS } from '@/types/app';
 import type { Kategorien, Ausgaben, AusgabeErfassen } from '@/types/app';
 
 // Base Configuration
-const API_BASE_URL = '/api/rest';  // Uses Vite proxy to avoid CORS
+const LIVING_APPS_URL = 'https://my.living-apps.de/rest';
+
+// Detect environment: Use Vite proxy in dev, direct URL in production
+function getApiBaseUrl(): string {
+  // In development (Vite dev server), use proxy to avoid CORS
+  if (import.meta.env.DEV) {
+    return '/api/rest';
+  }
+  // In production (GitHub Pages), user is logged into living-apps.de
+  return LIVING_APPS_URL;
+}
 
 // --- HELPER FUNCTIONS ---
 export function extractRecordId(url: string | null | undefined): string | null {
@@ -18,7 +28,8 @@ export function createRecordUrl(appId: string, recordId: string): string {
 }
 
 async function callApi(method: string, endpoint: string, data?: any) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}${endpoint}`, {
     method,
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',  // Nutze Session Cookies für Auth

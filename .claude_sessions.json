@@ -5,7 +5,13 @@
       "name": "2026-01-22 10:34 - Initial build: Ausgabentracker",
       "created_at": "2026-01-22T10:34:46.089277Z",
       "last_used": "2026-01-22T10:51:04.978163Z"
+    },
+    {
+      "id": "a3a6ecce-1aa0-485e-8ef4-d29e3e3432c8",
+      "name": "2026-01-22 10:56 - Ändere Akzentfarbe auf blau",
+      "created_at": "2026-01-22T10:56:03.309520Z",
+      "last_used": "2026-01-22T10:56:03.309520Z"
     }
   ],
-  "active_session": "e9c1c4df-e955-4804-894f-d1bad704ae82"
+  "active_session": "a3a6ecce-1aa0-485e-8ef4-d29e3e3432c8"
 }

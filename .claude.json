@@ -9,5 +9,31 @@
   "firstStartTime": "2026-01-21T14:24:01.131Z",
   "userID": "4949f04290ad47f516e06a34cfaa74f612dac6dc71539ec460b455337d5b914b",
   "sonnet45MigrationComplete": true,
-  "opus45MigrationComplete": true
+  "opus45MigrationComplete": true,
+  "githubRepoPaths": {
+    "mnogodumalon/696f823d82832d065e68cd7b": [
+      "/home/user/app"
+    ]
+  },
+  "projects": {
+    "/home/user/app": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "Dashboard.tsx",
+        "src/index.css",
+        "claude_agent.py",
+        "livingAppsService.ts",
+        "design_brief.md"
+      ],
+      "exampleFilesGeneratedAt": 1769074890418
+    }
+  }
 }

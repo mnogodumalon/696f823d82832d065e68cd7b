@@ -68,8 +68,8 @@ async def main():
             
             # Neuen Code committen (includes .claude/ direkt im Repo)
             run_git_cmd("git add -A")
-            # Force add .claude falls in .gitignore
-            subprocess.run("git add -f .claude .claude_session_id 2>/dev/null", shell=True, cwd="/home/user/app")
+            # Force add .claude (exclude debug/ - may contain secrets)
+            subprocess.run("git add -f .claude ':!.claude/debug' .claude_session_id 2>/dev/null", shell=True, cwd="/home/user/app")
             run_git_cmd("git commit -m 'Lilo Auto-Deploy' --allow-empty")
             run_git_cmd("git push origin main")
             

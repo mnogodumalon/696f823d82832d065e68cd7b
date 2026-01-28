@@ -21,7 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Plus, TrendingUp, TrendingDown, AlertCircle, Receipt } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, AlertCircle, Receipt, Car } from 'lucide-react';
 
 // Currency formatter for German locale
 function formatCurrency(value: number | null | undefined): string {
@@ -32,13 +32,22 @@ function formatCurrency(value: number | null | undefined): string {
   }).format(value);
 }
 
-// Category bar colors (teal gradient)
+// Category bar colors (red gradient)
 const CATEGORY_COLORS = [
-  'hsl(175 45% 35%)',
-  'hsl(175 40% 45%)',
-  'hsl(175 35% 55%)',
-  'hsl(175 30% 65%)',
+  'hsl(0 72% 51%)',
+  'hsl(0 65% 58%)',
+  'hsl(0 55% 62%)',
+  'hsl(0 45% 68%)',
 ];
+
+// Sparziel für Mazda 6
+const SAVINGS_GOAL = {
+  name: 'Mazda 6',
+  targetAmount: 28000,
+  currentAmount: 9500,
+  emoji: '🚗',
+  note: 'In Berlin angeschaut',
+};
 
 export default function Dashboard() {
   const [ausgaben, setAusgaben] = useState<Ausgaben[]>([]);
@@ -299,6 +308,46 @@ export default function Dashboard() {
               {currentMonthExpenses.length} Transaktionen
             </p>
           </div>
+
+          {/* Sparziel Mazda 6 */}
+          <Card className="mb-6 shadow-sm border-2 border-primary/20 bg-gradient-to-br from-card to-accent/30">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Car className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    Sparziel: {SAVINGS_GOAL.name} {SAVINGS_GOAL.emoji}
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">{SAVINGS_GOAL.note}</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{formatCurrency(SAVINGS_GOAL.currentAmount)}</p>
+                  <p className="text-xs text-muted-foreground">von {formatCurrency(SAVINGS_GOAL.targetAmount)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-primary">
+                    {((SAVINGS_GOAL.currentAmount / SAVINGS_GOAL.targetAmount) * 100).toFixed(0)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">erreicht</p>
+                </div>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-700"
+                  style={{ width: `${(SAVINGS_GOAL.currentAmount / SAVINGS_GOAL.targetAmount) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Noch {formatCurrency(SAVINGS_GOAL.targetAmount - SAVINGS_GOAL.currentAmount)} bis zum Ziel!
+              </p>
+            </CardContent>
+          </Card>
 
           {/* Category Breakdown */}
           <Card className="mb-6 shadow-sm">
@@ -641,6 +690,46 @@ export default function Dashboard() {
                   </form>
                 </DialogContent>
               </Dialog>
+
+              {/* Sparziel Mazda 6 */}
+              <Card className="shadow-sm border-2 border-primary/20 bg-gradient-to-br from-card to-accent/30">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-primary/10 rounded-xl">
+                      <Car className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base font-semibold flex items-center gap-2">
+                        Sparziel: {SAVINGS_GOAL.name} {SAVINGS_GOAL.emoji}
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">{SAVINGS_GOAL.note}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{formatCurrency(SAVINGS_GOAL.currentAmount)}</p>
+                      <p className="text-xs text-muted-foreground">von {formatCurrency(SAVINGS_GOAL.targetAmount)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-semibold text-primary">
+                        {((SAVINGS_GOAL.currentAmount / SAVINGS_GOAL.targetAmount) * 100).toFixed(0)}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">erreicht</p>
+                    </div>
+                  </div>
+                  <div className="h-3 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-700"
+                      style={{ width: `${(SAVINGS_GOAL.currentAmount / SAVINGS_GOAL.targetAmount) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Noch {formatCurrency(SAVINGS_GOAL.targetAmount - SAVINGS_GOAL.currentAmount)} bis zum Ziel!
+                  </p>
+                </CardContent>
+              </Card>
 
               {/* Category Breakdown */}
               <Card className="shadow-sm">

@@ -3,10 +3,16 @@
   "autoUpdates": true,
   "cachedStatsigGates": {
     "tengu_disable_bypass_permissions_mode": false,
-    "tengu_tool_pear": false
+    "tengu_tool_pear": false,
+    "tengu_web_tasks": true
   },
   "firstStartTime": "2026-01-22T13:28:39.730Z",
   "userID": "945d1120dae1c2c11f457d02f464091992196f45167518ae7ecbfd3cebc86acd",
   "sonnet45MigrationComplete": true,
-  "opus45MigrationComplete": true
+  "opus45MigrationComplete": true,
+  "githubRepoPaths": {
+    "mnogodumalon/696f823d82832d065e68cd7b": [
+      "/home/user/app"
+    ]
+  }
 }
